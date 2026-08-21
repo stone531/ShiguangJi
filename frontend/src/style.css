@@ -1,0 +1,21 @@
+/* 全局基础样式：暗色后台适配（Naive UI darkTheme 配套） */
+:root {
+  color-scheme: dark;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: rgba(255, 255, 255, 0.82);
+  background: #101014;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #101014;
+}
+
+#app {
+  min-height: 100vh;
+}

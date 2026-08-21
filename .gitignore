@@ -1,0 +1,25 @@
+# 时光集 ShiguangJi — 全局忽略
+
+# 依赖与构建产物
+frontend/node_modules/
+frontend/dist/
+
+# 后端
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# 环境与密钥
+.env
+*.local
+
+# IDE / 系统
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+Thumbs.db
+.DS_Store
+
+# 临时
+*.exe
+*.log
