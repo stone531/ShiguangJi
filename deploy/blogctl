@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# 时光集服务器端控制脚本（随部署包携带，放在 /var/www/blog/blogctl）
+#
+# 用法（start/stop/restart 需要 root）：
+#   ./blogctl start | stop | restart | status   # 管理后端服务（systemd blog）
+#   ./blogctl nginx                             # 按 .env 端口生成 nginx 配置并热加载
+#   ./blogctl logs                              # 跟踪后端日志
+#
+# 端口都在同目录 .env 里配：
+#   ADDR=127.0.0.1:8080   后端监听地址:端口（改后 ./blogctl restart）
+#   FRONT_PORT=80         前端(nginx)对外端口（改后 ./blogctl nginx）
+#
+# 注意：FRONT_PORT 用于普通 HTTP 端口；要上 HTTPS 请按 nginx-centos7.conf 尾部注释手动配 443。
+
+set -euo pipefail
+
+BASE="$(cd "$(dirname "$0")" && pwd)"
+ENV_FILE="$BASE/.env"
+NGINX_SRC="$BASE/nginx-centos7.conf"
+NGINX_DST="/etc/nginx/conf.d/blog.conf"
+
+# 读 .env 单项（KEY=VALUE，取最后一次出现，值里可含等号）
+env_get() {
+	awk -F= -v k="$1" '$1==k{print substr($0, length(k)+2)}' "$ENV_FILE" | tail -1
+}
+
+[ -f "$ENV_FILE" ] || { echo "未找到 $ENV_FILE，请先 cp .env.example .env"; exit 1; }
+
+addr="$(env_get ADDR)"; addr="${addr:-127.0.0.1:8080}"
+backend_port="${addr##*:}"
+backend_host="${addr%%:*}"; [ -n "$backend_host" ] || backend_host="127.0.0.1"
+front_port="$(env_get FRONT_PORT)"; front_port="${front_port:-80}"
+
+case "${1:-}" in
+start|stop|restart|status)
+	systemctl "$1" blog
+	;;
+logs)
+	journalctl -u blog -f
+	;;
+nginx)
+	[ "$(id -u)" = 0 ] || { echo "需要 root 执行"; exit 1; }
+	[ -f "$NGINX_SRC" ] || { echo "缺少模板 $NGINX_SRC"; exit 1; }
+	# 覆盖前备份旧配置（若曾手动改过 server_name 可从备份找回）
+	if [ -f "$NGINX_DST" ]; then cp "$NGINX_DST" "$NGINX_DST.bak.$(date +%Y%m%d%H%M%S)"; fi
+	sed -e "s|^    listen 80;|    listen ${front_port};|" \
+		-e "s|http://127.0.0.1:8080|http://${backend_host}:${backend_port}|g" \
+		"$NGINX_SRC" > "$NGINX_DST"
+	nginx -t && systemctl reload nginx
+	echo "已应用：前端端口 ${front_port} → 后端 ${backend_host}:${backend_port}"
+	echo "提醒：若手改过 server_name，本次生成会覆盖，请编辑 $NGINX_DST 后 reload"
+	;;
+*)
+	echo "用法: $0 {start|stop|restart|status|nginx|logs}"
+	exit 1
+	;;
+esac

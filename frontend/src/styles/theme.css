@@ -1,0 +1,232 @@
+/* 前台暗色科技风主题（spec §6.1.1：轻量 CSS 为主，零重型 3D/粒子）。
+   字体本地打包（@fontsource），中文走系统字体栈——禁止全量中文 webfont。 */
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/700.css';
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Space Grotesk Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --color-void: #08080d;
+  --color-panel: #10101a;
+  --color-ink: #e6e9f5;
+  --color-dim: #9aa3c0;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-accent: #22d3ee;
+  --color-accent-2: #8b5cf6;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* ===== 文字渐变 ===== */
+.text-gradient {
+  background: linear-gradient(120deg, #22d3ee, #8b5cf6 60%, #e879f9);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ===== Aurora 背景：暗色底上缓慢漂移的极光色斑 ===== */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora::before,
+.aurora::after {
+  content: '';
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.16;
+}
+
+.aurora::before {
+  top: -20vmax;
+  left: -10vmax;
+  background: radial-gradient(circle, #22d3ee, transparent 65%);
+  animation: aurora-drift-a 26s ease-in-out infinite alternate;
+}
+
+.aurora::after {
+  right: -15vmax;
+  bottom: -25vmax;
+  background: radial-gradient(circle, #8b5cf6, transparent 65%);
+  animation: aurora-drift-b 32s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(12vmax, 8vmax) scale(1.25); }
+}
+
+@keyframes aurora-drift-b {
+  from { transform: translate(0, 0) scale(1.15); }
+  to { transform: translate(-10vmax, -8vmax) scale(0.9); }
+}
+
+/* ===== 噪点纹理：SVG feTurbulence，压住纯渐变的廉价感 ===== */
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ===== 玻璃卡片 ===== */
+.glass {
+  background: rgba(16, 16, 26, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--color-line);
+}
+
+/* ===== 光标聚光卡片：mousemove 更新 --mx/--my（组件内 20 行内实现） ===== */
+.spotlight {
+  position: relative;
+}
+
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), rgba(139, 92, 246, 0.16), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* ===== Markdown 正文排版（详情页 ~720px，spec §6.2） ===== */
+.md-body {
+  max-width: 720px;
+  margin: 0 auto;
+  line-height: 1.85;
+  word-break: break-word;
+}
+
+.md-body > :first-child { margin-top: 0; }
+
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.6em 0 0.7em;
+  scroll-margin-top: 90px; /* 锚点跳转避开吸顶导航 */
+}
+
+.md-body h1 { font-size: 1.65rem; }
+.md-body h2 { font-size: 1.35rem; padding-bottom: 0.35em; border-bottom: 1px solid var(--color-line); }
+.md-body h3 { font-size: 1.15rem; }
+.md-body h4 { font-size: 1.02rem; }
+
+.md-body p { margin: 0.9em 0; }
+
+.md-body a {
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(34, 211, 238, 0.4);
+}
+
+.md-body a:hover { border-bottom-style: solid; }
+
+.md-body img {
+  max-width: 100%;
+  border-radius: 10px;
+  margin: 1.2em auto;
+  cursor: zoom-in;
+}
+
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.md-body :not(pre) > code {
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+}
+
+.md-body pre {
+  border-radius: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  margin: 1.2em 0;
+}
+
+.md-body pre code {
+  display: block;
+  padding: 1em 1.2em;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.md-body blockquote {
+  margin: 1.2em 0;
+  padding: 0.1em 1.2em;
+  border-left: 3px solid;
+  border-image: linear-gradient(#22d3ee, #8b5cf6) 1;
+  color: var(--color-dim);
+}
+
+.md-body ul, .md-body ol { padding-left: 1.5em; margin: 0.9em 0; }
+.md-body li { margin: 0.35em 0; }
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+
+.md-body th, .md-body td {
+  border: 1px solid var(--color-line);
+  padding: 0.5em 0.8em;
+}
+
+.md-body th { background: rgba(255, 255, 255, 0.04); font-weight: 600; }
+
+.md-body hr { border: none; border-top: 1px solid var(--color-line); margin: 2em 0; }
+
+/* ===== View Transitions 页面切换（不支持的浏览器自动降级） ===== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ===== 动效关照 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after {
+    animation: none;
+  }
+}
