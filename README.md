@@ -5,7 +5,7 @@
 ## 技术栈
 
 - **前端**：Vue 3 + Vite + TypeScript + Naive UI（暗色科技风）
-- **后端**：Go (Gin) + GORM + MySQL 8
+- **后端**：Go (Gin) + GORM + MySQL 5.6.5+
 - **部署**：Nginx 同域反代 + systemd 单二进制（单台云服务器）
 
 ## 目录结构
@@ -19,13 +19,13 @@
 
 ## 快速开始
 
-### 后端（需 MySQL 8.0+）
+### 后端（需 MySQL 5.6.5+，utf8mb4/utf8mb4_unicode_ci）
 
 ```bash
+mysql -uroot -p < deploy/init.sql   # 一键建库建表+初始数据（管理员 admin/admin123456，首登强制改密）
 cd backend
-cp .env.example .env      # 修改 DSN 密码与 JWT_SECRET
-go run ./cmd/initadmin -username admin -password yourpass123   # 建表+初始化管理员
-make dev                  # 监听 :8080
+cp .env.example .env                # 填 DB_USER/DB_PASSWORD 与 JWT_SECRET
+make dev                            # 监听 :8080（连不上数据库会启动即退出）
 ```
 
 ### 前端
@@ -46,7 +46,7 @@ npm run dev               # http://localhost:5173 → /admin/login
 
 ## 部署
 
-生产部署文件在 `deploy/`（用法见各文件头部注释）：`nginx.conf`（同域反代 + SPA + uploads 禁执行）、`blog.service`（systemd）、`deploy.sh`（本机构建 → scp → 重启）、`backup.sh`（mysqldump 滚动 7 天 + uploads 增量链，配 cron）。首次部署见 `deploy/deploy.sh` 头部说明。
+生产部署文件在 `deploy/`（用法见各文件头部注释）：`nginx.conf`（同域反代 + SPA + uploads 禁执行）、`blog.service`（systemd）、`deploy.sh`（本机构建 → scp → 重启）、`backup.sh`（mysqldump 滚动 7 天 + uploads 增量链，配 cron）。首次部署见 `deploy/deploy.sh` 头部说明；数据库初始化直接导入 `deploy/init.sql`（建库+建表+初始管理员），程序端在 `.env` 配 `DB_USER/DB_PASSWORD` 即可连库。CentOS 7 服务器可 `bash deploy/package.sh` 生成离线部署包 `build/blog-centos7.tar.gz`（前后端产物 + el7 适配 nginx 配置，服务器步骤见 `deploy/README-部署-centos7.md`）。
 
 ## 里程碑
 

@@ -21,7 +21,7 @@ type Post struct {
 	BaseModel
 	SoftDelete
 	Title        string     `gorm:"size:200;not null" json:"title"`
-	Slug         string     `gorm:"size:200;uniqueIndex;not null" json:"slug"`
+	Slug         string     `gorm:"size:191;uniqueIndex;not null" json:"slug"` // 191：utf8mb4 索引不超 MySQL 5.6 的 767 字节前缀上限
 	Summary      string     `gorm:"size:500" json:"summary"`
 	Cover        string     `gorm:"size:255" json:"cover"`
 	Content      string     `gorm:"type:longtext;not null" json:"content"`

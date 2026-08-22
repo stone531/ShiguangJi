@@ -1,23 +1,24 @@
 # personal-blog backend (M1)
 
-Go 1.22+ / Gin / GORM / MySQL 8。M1 范围：登录（JWT 滑动过期 + HttpOnly Cookie）、文章 CRUD、图片上传（魔数校验 + MD5 命名 + 缩略图）。
+Go 1.22+ / Gin / GORM / MySQL 5.6.5+。M1 范围：登录（JWT 滑动过期 + HttpOnly Cookie）、文章 CRUD、图片上传（魔数校验 + MD5 命名 + 缩略图）。
 
-> **注意：首次运行需要本机可用的 MySQL 8.0+ 服务**（本仓库的自动化测试用 sqlite 内存库，不需要 MySQL）。
+> **注意：首次运行需要本机可用的 MySQL 5.6.5+ 服务**（本仓库的自动化测试用 sqlite 内存库，不需要 MySQL）。
 
 ## 本地启动
 
 ```bash
-# 1. 建库（MySQL 8.0+）
-mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS personal_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
+# 1. 初始化数据库（二选一）
+#    a) 一键导入（推荐）：建库 + 建表 + 初始数据 + 初始管理员 admin/admin123456（首登强制改密）
+mysql -uroot -p < ../deploy/init.sql
+#    b) 手动建库后用 initadmin（幂等：应用 migrations/*.sql + 创建/重置管理员）
+#       mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS personal_blog CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+#       go run ./cmd/initadmin -username admin -password your-password-123
 
 # 2. 配置环境
 cp .env.example .env
-# 编辑 .env：修改 DSN 中的数据库密码、JWT_SECRET（随机 64 字符）、LIKE_SALT
+# 编辑 .env：填 DB_USER/DB_PASSWORD（或整串 DSN）、JWT_SECRET（随机 64 字符）、LIKE_SALT
 
-# 3. 初始化（应用 migrations/*.sql + 创建/重置管理员，幂等）
-go run ./cmd/initadmin -username admin -password your-password-123
-
-# 4. 启动服务
+# 3. 启动服务（数据库连不上会启动即退出）
 make dev
 ```
 
@@ -27,7 +28,7 @@ make dev
 # 登录（成功后 Set-Cookie: blog_token=...; HttpOnly）
 curl -i -c cookies.txt -X POST localhost:8080/api/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"your-password-123"}'
+  -d '{"username":"admin","password":"admin123456"}'
 
 # 无 cookie 访问受保护接口 → 401 {"code":20001,...}
 curl -i localhost:8080/api/admin/stats
