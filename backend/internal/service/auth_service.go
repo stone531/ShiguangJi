@@ -62,3 +62,31 @@ func (s *AuthService) ChangePassword(ctx context.Context, adminID uint, oldPass,
 	return s.db.WithContext(ctx).Model(&admin).
 		Updates(map[string]interface{}{"password_hash": string(hash), "must_change_password": false}).Error
 }
+
+// AdminProfile 博主资料（不含密码哈希等敏感列）。
+type AdminProfile struct {
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+}
+
+// GetProfile 读取博主资料（GET /api/admin/profile）。
+func (s *AuthService) GetProfile(ctx context.Context, adminID uint) (*AdminProfile, error) {
+	var admin model.Admin
+	if err := s.db.WithContext(ctx).First(&admin, adminID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.ErrNotFound
+		}
+		return nil, err
+	}
+	return &AdminProfile{Username: admin.Username, Nickname: admin.Nickname, Avatar: admin.Avatar}, nil
+}
+
+// UpdateProfile 更新昵称/头像（PUT /api/admin/profile）。
+func (s *AuthService) UpdateProfile(ctx context.Context, adminID uint, nickname, avatar string) error {
+	if l := len([]rune(nickname)); l < 1 || l > 20 {
+		return errs.New(40001, "昵称长度需在 1-20 字符")
+	}
+	return s.db.WithContext(ctx).Model(&model.Admin{}).Where("id = ?", adminID).
+		Updates(map[string]interface{}{"nickname": nickname, "avatar": avatar}).Error
+}

@@ -1,28 +1,23 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { NAlert, NCard, NEmpty, NGrid, NGridItem, NSpin, useMessage } from 'naive-ui'
 import { get } from '@/api/http'
-
-interface StatsVO {
-  post_count?: number
-  comment_count?: number
-  like_count?: number
-  total_views?: number
-  /** M1 后端占位字段：存在时表示统计未实现，前端展示占位 0 */
-  todo?: unknown
-}
-
-interface RecentComment {
-  id: number
-  nickname: string
-  content: string
-  created_at: string
-}
+import { listComments } from '@/api/comment'
+import type { AdminCommentVO, StatsVO } from '@/types/api'
 
 const message = useMessage()
+const router = useRouter()
 const loading = ref(true)
-const stats = ref<StatsVO>({ post_count: 0, comment_count: 0, like_count: 0, total_views: 0 })
-const recentComments = ref<RecentComment[]>([])
+const stats = ref<StatsVO>({
+  post_total: 0,
+  post_published: 0,
+  comment_total: 0,
+  comment_pending: 0,
+  view_total: 0,
+  like_total: 0,
+})
+const recentComments = ref<AdminCommentVO[]>([])
 
 /** 竞态守卫：只有最新一次请求的响应才落 state */
 let seq = 0
@@ -31,9 +26,14 @@ async function load() {
   const current = ++seq
   loading.value = true
   try {
-    const data = await get<StatsVO>('/admin/stats')
-    if (current !== seq) return // 过期响应丢弃
-    stats.value = data
+    // 六指标与待审列表并行取，互不依赖
+    const [statsData, pending] = await Promise.all([
+      get<StatsVO>('/admin/stats'),
+      listComments({ status: 0, page: 1, size: 5 }).catch(() => null),
+    ])
+    if (current !== seq) return
+    stats.value = statsData
+    recentComments.value = pending?.list ?? []
   } catch (err) {
     if (current !== seq) return
     message.error(err instanceof Error ? err.message : '统计加载失败')
@@ -42,9 +42,8 @@ async function load() {
   }
 }
 
-function statValue(v: number | undefined): number {
-  // M2：后端 stats 为 {todo} 占位，统一显示 0
-  return v ?? 0
+function goComments() {
+  router.push('/admin/comments')
 }
 
 onMounted(load)
@@ -52,42 +51,50 @@ onMounted(load)
 
 <template>
   <div class="dashboard">
-    <n-alert type="info" :bordered="false" style="margin-bottom: 16px">
-      统计接口将在 M4 提供，当前为占位数据
+    <n-alert
+      v-if="stats.comment_pending > 0"
+      type="warning"
+      :bordered="false"
+      style="margin-bottom: 16px; cursor: pointer"
+      @click="goComments"
+    >
+      有 {{ stats.comment_pending }} 条评论待审核，点击前往处理
     </n-alert>
 
     <n-spin :show="loading">
       <n-grid :cols="4" :x-gap="16" :y-gap="16" item-responsive responsive="screen">
         <n-grid-item span="4 s:2 l:1">
-          <n-card title="文章数">
-            <div class="stat-value">{{ statValue(stats.post_count) }}</div>
+          <n-card title="文章总数">
+            <div class="stat-value">{{ stats.post_total }}</div>
+            <div class="stat-sub">已发布 {{ stats.post_published }}</div>
           </n-card>
         </n-grid-item>
         <n-grid-item span="4 s:2 l:1">
-          <n-card title="评论数">
-            <div class="stat-value">{{ statValue(stats.comment_count) }}</div>
-          </n-card>
-        </n-grid-item>
-        <n-grid-item span="4 s:2 l:1">
-          <n-card title="点赞数">
-            <div class="stat-value">{{ statValue(stats.like_count) }}</div>
+          <n-card title="评论总数">
+            <div class="stat-value">{{ stats.comment_total }}</div>
+            <div class="stat-sub">待审核 {{ stats.comment_pending }}</div>
           </n-card>
         </n-grid-item>
         <n-grid-item span="4 s:2 l:1">
           <n-card title="总浏览">
-            <div class="stat-value">{{ statValue(stats.total_views) }}</div>
+            <div class="stat-value">{{ stats.view_total }}</div>
+          </n-card>
+        </n-grid-item>
+        <n-grid-item span="4 s:2 l:1">
+          <n-card title="总点赞">
+            <div class="stat-value">{{ stats.like_total }}</div>
           </n-card>
         </n-grid-item>
       </n-grid>
     </n-spin>
 
     <n-card title="最近待审评论" style="margin-top: 16px">
-      <n-empty v-if="recentComments.length === 0" description="暂无待审核评论（M4 数据接入）" />
+      <n-empty v-if="recentComments.length === 0" description="暂无待审核评论" />
       <ul v-else class="comment-list">
-        <li v-for="c in recentComments" :key="c.id">
+        <li v-for="c in recentComments" :key="c.id" @click="goComments">
           <span class="comment-nickname">{{ c.nickname }}</span>
           <span class="comment-content">{{ c.content }}</span>
-          <span class="comment-time">{{ c.created_at }}</span>
+          <span class="comment-time">{{ new Date(c.created_at).toLocaleString() }}</span>
         </li>
       </ul>
     </n-card>
@@ -98,6 +105,12 @@ onMounted(load)
 .stat-value {
   font-size: 32px;
   font-weight: 600;
+}
+
+.stat-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.6;
 }
 
 .comment-list {
@@ -111,6 +124,7 @@ onMounted(load)
   gap: 12px;
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
 }
 
 .comment-nickname {

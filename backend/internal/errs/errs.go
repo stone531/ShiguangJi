@@ -12,9 +12,10 @@ func (e *BizError) Error() string { return e.Msg }
 func New(code int, msg string) *BizError { return &BizError{Code: code, Msg: msg} }
 
 var (
-	ErrParam        = New(40001, "参数错误")
-	ErrNotFound     = New(40004, "资源不存在")
-	ErrUnauthorized = New(20001, "token 校验失败")
-	ErrTokenExpired = New(20002, "token 已过期")
-	ErrRateLimited  = New(42901, "请求过于频繁")
+	ErrParam          = New(40001, "参数错误")
+	ErrNotFound       = New(40004, "资源不存在")
+	ErrUnauthorized   = New(20001, "token 校验失败")
+	ErrTokenExpired   = New(20002, "token 已过期")
+	ErrRateLimited    = New(42901, "请求过于频繁")
+	ErrCommentBlocked = New(40006, "评论包含违规内容，请修改")
 )

@@ -12,7 +12,8 @@
 
 ```
 ├── backend/    # Go 后端（三层架构：router → handler → service → model）
-├── frontend/   # Vue 3 后台管理 SPA（前台 M3 开发中）
+├── frontend/   # Vue 3 单 SPA（前台展示站 + /admin 后台）
+├── deploy/     # 生产部署文件（nginx.conf / blog.service / deploy.sh / backup.sh）
 └── docs/       # 设计文档（spec）与实施计划
 ```
 
@@ -40,10 +41,16 @@ npm run dev               # http://localhost:5173 → /admin/login
 - 设计文档：`docs/superpowers/specs/2026-08-21-personal-blog-design.md`
 - M1 后端计划：`docs/superpowers/plans/2026-08-21-personal-blog-m1-backend.md`
 - M2 后台前端计划：`docs/superpowers/plans/2026-08-21-personal-blog-m2-admin-frontend.md`
+- M3 前台展示站计划：`docs/superpowers/plans/2026-08-22-personal-blog-m3-frontend.md`
+- M4 互动与上线计划：`docs/superpowers/plans/2026-08-22-personal-blog-m4-interaction.md`
+
+## 部署
+
+生产部署文件在 `deploy/`（用法见各文件头部注释）：`nginx.conf`（同域反代 + SPA + uploads 禁执行）、`blog.service`（systemd）、`deploy.sh`（本机构建 → scp → 重启）、`backup.sh`（mysqldump 滚动 7 天 + uploads 增量链，配 cron）。首次部署见 `deploy/deploy.sh` 头部说明。
 
 ## 里程碑
 
 - [x] M1 后端骨架（登录/JWT/文章 CRUD/上传缩略图）
 - [x] M2 后台前端（编辑器/自动保存/评论与设置占位）
-- [ ] M3 前台展示站（Bento 首页/文章渲染/赞赏）
-- [ ] M4 互动与上线（评论点赞接口/敏感词过滤/SEO/部署）
+- [x] M3 前台展示站（Bento 首页/文章渲染/归档搜索/赞赏 + 公开接口 site/categories/tags/archive）
+- [x] M4 互动与上线（评论点赞接口/敏感词过滤/后台接口补全/SEO meta 注入/安全加固/部署文件）

@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue'
 import {
-  NAlert, NButton, NDataTable, NDrawer, NDrawerContent, NEmpty, NInput, NModal,
+  NButton, NDataTable, NDrawer, NDrawerContent, NEmpty, NInput, NModal,
   NPopconfirm, NTag, useMessage,
 } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { listComments, reviewComment, replyComment, deleteComment } from '@/api/comment'
-import type { CommentItem } from '@/types/api'
+import type { AdminCommentVO } from '@/types/api'
 
 const message = useMessage()
 
 const loading = ref(false)
-const comments = ref<CommentItem[]>([])
+const comments = ref<AdminCommentVO[]>([])
 const activeStatus = ref<0 | 1 | 2>(0)
 const pagination = reactive({
   page: 1,
@@ -50,17 +50,17 @@ function onTabChange(status: number) {
 
 // 查看全文抽屉
 const drawerVisible = ref(false)
-const detail = ref<CommentItem | null>(null)
-function openDetail(row: CommentItem) {
+const detail = ref<AdminCommentVO | null>(null)
+function openDetail(row: AdminCommentVO) {
   detail.value = row
   drawerVisible.value = true
 }
 
 // 回复弹窗
 const replyVisible = ref(false)
-const replyTarget = ref<CommentItem | null>(null)
+const replyTarget = ref<AdminCommentVO | null>(null)
 const replyContent = ref('')
-function openReply(row: CommentItem) {
+function openReply(row: AdminCommentVO) {
   replyTarget.value = row
   replyContent.value = ''
   replyVisible.value = true
@@ -82,7 +82,7 @@ async function submitReply() {
   }
 }
 
-async function onReview(row: CommentItem, status: 1 | 2) {
+async function onReview(row: AdminCommentVO, status: 1 | 2) {
   try {
     await reviewComment(row.id, status)
     message.success(status === 1 ? '已通过' : '已驳回')
@@ -93,7 +93,7 @@ async function onReview(row: CommentItem, status: 1 | 2) {
   }
 }
 
-async function onDelete(row: CommentItem) {
+async function onDelete(row: AdminCommentVO) {
   try {
     await deleteComment(row.id)
     message.success('已删除')
@@ -114,7 +114,7 @@ const statusTag: Record<number, { text: string; type: 'warning' | 'success' | 'e
   2: { text: '已驳回', type: 'error' },
 }
 
-const columns: DataTableColumns<CommentItem> = [
+const columns: DataTableColumns<AdminCommentVO> = [
   {
     title: '昵称',
     key: 'nickname',
@@ -166,9 +166,6 @@ onMounted(load)
 
 <template>
   <div class="comment-manage">
-    <n-alert type="info" :show-icon="true">
-      评论接口后端将在 M4 提供，当前展示示例数据
-    </n-alert>
     <n-tabs :value="activeStatus" type="line" @update:value="onTabChange">
       <n-tab v-for="s in [0, 1, 2]" :key="s" :name="s" :tab="statusTag[s].text" />
     </n-tabs>
@@ -178,7 +175,7 @@ onMounted(load)
       :data="comments"
       :loading="loading"
       :pagination="pagination"
-      :row-key="(row: CommentItem) => row.id"
+      :row-key="(row: AdminCommentVO) => row.id"
     >
       <template #empty>
         <n-empty description="暂无评论" />
@@ -196,7 +193,14 @@ onMounted(load)
           </div>
           <div class="detail-block">
             <div class="detail-label">所属文章</div>
-            <div>{{ detail.post_title }}（#{{ detail.post_id }}）</div>
+            <div>{{ detail.post_title || '（文章已删除）' }}（#{{ detail.post_id }}）</div>
+          </div>
+          <div v-if="detail.email || detail.ip" class="detail-block">
+            <div class="detail-label">来源信息</div>
+            <div class="detail-meta">
+              <span v-if="detail.email">📮 {{ detail.email }}</span>
+              <span v-if="detail.ip">🌐 {{ detail.ip }}</span>
+            </div>
           </div>
           <div class="detail-block">
             <div class="detail-label">评论内容</div>

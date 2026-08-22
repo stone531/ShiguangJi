@@ -17,6 +17,10 @@ func newTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// 内存库跟随连接：连接池开新连接会拿到空库，限制单连接
+	if sqlDB, err := db.DB(); err == nil {
+		sqlDB.SetMaxOpenConns(1)
+	}
 	err = db.AutoMigrate(
 		&model.Post{}, &model.Category{}, &model.Tag{}, &model.PostTag{},
 		&model.Comment{}, &model.Like{}, &model.SiteSetting{}, &model.Admin{},
@@ -151,7 +155,7 @@ func TestListOnlyPublished(t *testing.T) {
 	svc := NewPostService(db)
 	svc.Create(context.Background(), &model.Post{Title: "pub", Slug: "p1", Content: "x", Status: model.StatusPublished}, nil)
 	svc.Create(context.Background(), &model.Post{Title: "draft", Slug: "d1", Content: "x", Status: model.StatusDraft}, nil)
-	list, total, err := svc.ListPublic(context.Background(), 1, 10, nil)
+	list, total, err := svc.ListPublic(context.Background(), PublicListFilter{Page: 1, Size: 10})
 	if err != nil {
 		t.Fatal(err)
 	}

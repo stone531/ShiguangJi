@@ -3,13 +3,14 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   NButton, NForm, NFormItem, NInput, NRadioButton, NRadioGroup,
-  NSelect, NSwitch, NTag, NUpload, useDialog, useMessage,
+  NSelect, NSwitch, NUpload, useDialog, useMessage,
 } from 'naive-ui'
 import type { UploadCustomRequestOptions } from 'naive-ui'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { getPost, createPost, updatePost, uploadImage } from '@/api/post'
 import type { PostPayload } from '@/api/post'
+import { listCategoriesAdmin, listTagsAdmin, saveTag } from '@/api/taxonomy'
 import { useAutoSave } from '@/composables/useAutoSave'
 
 const route = useRoute()
@@ -28,16 +29,64 @@ const form = reactive({
   content: '',
   type: 1 as 1 | 2 | 3,
   video_url: '',
-  // TODO(M4): 分类接口就绪后接入真实选项，当前静态占位
   category_id: null as number | null,
   is_top: false,
   is_featured: false,
 })
 
-const categoryOptions = [
-  // TODO(M4): 替换为 /api/categories 真实数据
-  { label: '未分类（占位）', value: 0, disabled: true },
-]
+/* ---------- 分类/标签选项（后台全量列表） ---------- */
+const categoryOptions = ref<{ label: string; value: number }[]>([])
+const tagOptions = ref<{ label: string; value: number }[]>([])
+const selectedTagIds = ref<number[]>([])
+
+async function loadTaxonomies() {
+  try {
+    const [cats, tags] = await Promise.all([listCategoriesAdmin(), listTagsAdmin()])
+    categoryOptions.value = cats.list.map((c) => ({ label: c.name, value: c.id }))
+    tagOptions.value = tags.list.map((t) => ({ label: t.name, value: t.id }))
+  } catch {
+    // 选项加载失败不阻塞编辑，仅无可选项
+  }
+}
+
+/** 标签即时新建：输入不存在的标签名 → 创建并选中（trim 后同名已存在则直接选中，后端 name 唯一） */
+const creatingTag = ref(false)
+async function createTagOnDemand(query: string) {
+  const name = query.trim()
+  if (!name || creatingTag.value) return
+  const existed = tagOptions.value.find((o) => o.label === name)
+  if (existed) {
+    if (!selectedTagIds.value.includes(existed.value)) {
+      selectedTagIds.value.push(existed.value)
+    }
+    return
+  }
+  creatingTag.value = true
+  try {
+    const tag = await saveTag(name)
+    if (!tagOptions.value.some((o) => o.value === tag.id)) {
+      tagOptions.value.push({ label: tag.name, value: tag.id })
+    }
+    if (!selectedTagIds.value.includes(tag.id)) {
+      selectedTagIds.value.push(tag.id)
+    }
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '标签创建失败')
+  } finally {
+    creatingTag.value = false
+  }
+}
+
+/**
+ * tag 模式回车产生的临时项是字符串（naive-ui 以输入文本作 value，且 onCreate 在键入时逐键触发、
+ * 无法承载异步请求），故用受控 value 拦截：字符串项不进 model，转异步创建后由 createTagOnDemand 补选真实 id。
+ */
+function onTagSelectUpdate(value: (string | number)[]) {
+  selectedTagIds.value = value.filter((v): v is number => typeof v === 'number')
+  for (const v of value) {
+    if (typeof v === 'string') void createTagOnDemand(v)
+  }
+}
 
 const slugError = ref('')
 function validateSlug() {
@@ -120,6 +169,7 @@ function beginAutoSave() {
 
 // 挂载：编辑态先回填服务器内容，再检测本地草稿
 onMounted(async () => {
+  void loadTaxonomies()
   if (isEdit.value && postId.value !== null) {
     try {
       const p = await getPost(postId.value)
@@ -133,6 +183,7 @@ onMounted(async () => {
       form.category_id = p.category_id
       form.is_top = p.is_top
       form.is_featured = p.is_featured
+      selectedTagIds.value = (p.tags ?? []).map((t) => t.id)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '文章加载失败')
     }
@@ -175,11 +226,11 @@ function buildPayload(status: 0 | 1): PostPayload {
     content: form.content,
     type: form.type,
     video_url: form.video_url,
-    category_id: null, // TODO(M4): 分类接口接入后传真实值
+    category_id: form.category_id,
     status,
     is_top: form.is_top,
     is_featured: form.is_featured,
-    tag_ids: [], // TODO(M4): 标签接口接入后传真实值
+    tag_ids: selectedTagIds.value,
   }
 }
 
@@ -275,12 +326,24 @@ onBeforeRouteLeave(() => {
           <n-input v-model:value="form.video_url" placeholder="https://player.bilibili.com/player.html?..." @blur="validateVideoUrl" />
         </n-form-item>
         <n-form-item label="分类">
-          <!-- TODO(M4): 分类接口就绪后接入真实数据，提交时 category_id 传 null -->
-          <n-select v-model:value="form.category_id" :options="categoryOptions" placeholder="分类（M4 接入）" clearable disabled />
+          <n-select
+            v-model:value="form.category_id"
+            :options="categoryOptions"
+            placeholder="选择分类（可空）"
+            clearable
+          />
         </n-form-item>
         <n-form-item label="标签">
-          <!-- TODO(M4): 标签接口就绪后接入，提交时 tag_ids 传 [] -->
-          <n-tag :bordered="false" type="default">标签选择将在 M4 提供</n-tag>
+          <n-select
+            :value="selectedTagIds"
+            :options="tagOptions"
+            multiple
+            filterable
+            tag
+            placeholder="选择或输入新标签回车创建"
+            :loading="creatingTag"
+            @update:value="onTagSelectUpdate"
+          />
         </n-form-item>
         <div class="switch-row">
           <n-form-item label="置顶">

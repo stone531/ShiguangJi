@@ -166,22 +166,52 @@ func (s *PostService) GetByID(ctx context.Context, id uint) (*model.Post, error)
 	return &p, err
 }
 
-// GetBySlugPublic 前台：仅已发布。views 原子 +1。
-func (s *PostService) GetBySlugPublic(ctx context.Context, slug string) (*model.Post, error) {
+// PostBrief 相邻文章摘要（详情页上/下篇导航，spec §6.2）。
+type PostBrief struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
+}
+
+// GetBySlugPublic 前台：仅已发布。views 原子 +1，并返回时间线上/下篇。
+func (s *PostService) GetBySlugPublic(ctx context.Context, slug string) (*model.Post, *PostBrief, *PostBrief, error) {
 	var p model.Post
 	err := s.db.WithContext(ctx).Preload("Category").Preload("Tags").
 		Where("slug = ? AND status = ?", slug, model.StatusPublished).First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, errs.ErrNotFound
+		return nil, nil, nil, errs.ErrNotFound
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if err := s.db.WithContext(ctx).Model(&model.Post{}).Where("id = ?", p.ID).
 		UpdateColumn("views", gorm.Expr("views + 1")).Error; err != nil {
 		slog.Warn("update views failed", "post_id", p.ID, "err", err)
+	} else {
+		p.Views++ // 返回值与库内保持一致（本次浏览计入）
 	}
-	return &p, nil
+	prev, next := s.neighbors(ctx, p.ID, p.PublishedAt)
+	return &p, prev, next, nil
+}
+
+// neighbors prev=发布更早的相邻一篇，next=更新的相邻一篇（时间线语义）。
+func (s *PostService) neighbors(ctx context.Context, id uint, at *time.Time) (*PostBrief, *PostBrief) {
+	if at == nil {
+		return nil, nil
+	}
+	prev := s.neighborBrief(ctx, "published_at < ?", at, id, "published_at DESC")
+	next := s.neighborBrief(ctx, "published_at > ?", at, id, "published_at ASC")
+	return prev, next
+}
+
+func (s *PostService) neighborBrief(ctx context.Context, cond string, at *time.Time, id uint, order string) *PostBrief {
+	var b PostBrief
+	err := s.db.WithContext(ctx).Model(&model.Post{}).
+		Where("status = ? AND "+cond+" AND id <> ?", model.StatusPublished, at, id).
+		Order(order).Select("slug, title").First(&b).Error
+	if err != nil {
+		return nil
+	}
+	return &b
 }
 
 // SetStatus 状态切换；首次发布写入 published_at。
@@ -202,18 +232,44 @@ func (s *PostService) SetStatus(ctx context.Context, id uint, status int8) error
 	})
 }
 
-// ListPublic 前台列表：仅已发布，置顶优先，分页，可按分类筛选。
-func (s *PostService) ListPublic(ctx context.Context, page, size int, categoryID *uint) ([]model.Post, int64, error) {
-	if page < 1 {
-		page = 1
+// PublicListFilter 前台列表筛选（spec §5.1：type/category/tag/keyword + 推荐位）。
+type PublicListFilter struct {
+	Page     int
+	Size     int
+	Type     *int8
+	Category string // 分类名
+	Tag      string // 标签名
+	Keyword  string // 标题/摘要/标签名模糊匹配
+	Featured *bool
+}
+
+// ListPublic 前台列表：仅已发布，置顶优先，分页，支持多条件筛选。
+func (s *PostService) ListPublic(ctx context.Context, f PublicListFilter) ([]model.Post, int64, error) {
+	if f.Page < 1 {
+		f.Page = 1
 	}
-	if size < 1 || size > 50 {
-		size = 10
+	if f.Size < 1 || f.Size > 50 {
+		f.Size = 10
 	}
 	q := s.db.WithContext(ctx).Model(&model.Post{}).
-		Where("status = ?", model.StatusPublished)
-	if categoryID != nil {
-		q = q.Where("category_id = ?", *categoryID)
+		Where("posts.status = ?", model.StatusPublished)
+	if f.Type != nil {
+		q = q.Where("posts.type = ?", *f.Type)
+	}
+	if f.Category != "" {
+		q = q.Joins("JOIN categories ON categories.id = posts.category_id AND categories.name = ?", f.Category)
+	}
+	if f.Tag != "" {
+		q = q.Joins("JOIN post_tags ON post_tags.post_id = posts.id").
+			Joins("JOIN tags ON tags.id = post_tags.tag_id AND tags.name = ?", f.Tag)
+	}
+	if f.Featured != nil && *f.Featured {
+		q = q.Where("posts.is_featured = ?", true)
+	}
+	if f.Keyword != "" {
+		kw := "%" + likeEscaper.Replace(f.Keyword) + "%"
+		q = q.Where(`posts.title LIKE ? ESCAPE '\' OR posts.summary LIKE ? ESCAPE '\'
+			OR posts.id IN (SELECT pt.post_id FROM post_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.name LIKE ? ESCAPE '\')`, kw, kw, kw)
 	}
 	var total int64
 	if err := q.Count(&total).Error; err != nil {
@@ -221,9 +277,46 @@ func (s *PostService) ListPublic(ctx context.Context, page, size int, categoryID
 	}
 	var list []model.Post
 	err := q.Preload("Category").Preload("Tags").
-		Order("is_top DESC, published_at DESC").
-		Offset((page - 1) * size).Limit(size).Find(&list).Error
+		Order("posts.is_top DESC, posts.published_at DESC").
+		Offset((f.Page - 1) * f.Size).Limit(f.Size).Find(&list).Error
 	return list, total, err
+}
+
+// ArchivePost 归档条目。
+type ArchivePost struct {
+	ID          uint      `json:"id"`
+	Title       string    `json:"title"`
+	Slug        string    `json:"slug"`
+	PublishedAt time.Time `json:"published_at"`
+}
+
+// ArchiveGroup 年月分组（spec §5.1 /archive）。
+type ArchiveGroup struct {
+	Year  int           `json:"year"`
+	Month int           `json:"month"`
+	Posts []ArchivePost `json:"posts"`
+}
+
+// Archive 已发布文章按年月分组倒序（时间线归档页数据源）。
+func (s *PostService) Archive(ctx context.Context) ([]ArchiveGroup, error) {
+	var rows []ArchivePost
+	err := s.db.WithContext(ctx).Model(&model.Post{}).
+		Where("status = ? AND published_at IS NOT NULL", model.StatusPublished).
+		Order("published_at DESC").
+		Select("id, title, slug, published_at").Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	groups := make([]ArchiveGroup, 0, len(rows))
+	for _, r := range rows {
+		last := len(groups) - 1
+		if last < 0 || groups[last].Year != r.PublishedAt.Year() || groups[last].Month != int(r.PublishedAt.Month()) {
+			groups = append(groups, ArchiveGroup{Year: r.PublishedAt.Year(), Month: int(r.PublishedAt.Month())})
+			last++
+		}
+		groups[last].Posts = append(groups[last].Posts, r)
+	}
+	return groups, nil
 }
 
 // ListAdmin 后台列表：全部状态 + 关键词筛选（LIKE 通配符已转义）。

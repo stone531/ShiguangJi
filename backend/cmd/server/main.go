@@ -31,6 +31,11 @@ func main() {
 	}
 
 	r := gin.New()
+	// 仅信任本机 nginx 反代：否则 gin 默认信任所有代理，X-Forwarded-For 可伪造，
+	// 登录/评论限流与点赞指纹（均基于 ClientIP）全部可被绕过
+	if err := r.SetTrustedProxies([]string{"127.0.0.1", "::1"}); err != nil {
+		log.Fatal("set trusted proxies: ", err)
+	}
 	router.RegisterAll(r, db, cfg)
 
 	srv := &http.Server{

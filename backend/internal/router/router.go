@@ -2,7 +2,6 @@
 package router
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 var (
 	loginLimiter     *middleware.IPLimiter
 	loginLimiterOnce sync.Once
+	commentSvc       *service.CommentService
 )
 
 // getLoginLimiter 登录限流器只初始化一次（测试与 main 共用同一实例）。
@@ -32,6 +32,9 @@ func getLoginLimiter() *middleware.IPLimiter {
 func CloseAuthLimiter() {
 	if loginLimiter != nil {
 		loginLimiter.Close()
+	}
+	if commentSvc != nil {
+		commentSvc.Close()
 	}
 }
 
@@ -50,9 +53,12 @@ func RegisterAuthRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		admin := api.Group("/admin")
 		admin.POST("/login", limiter.GinMiddleware(), authH.Login)
 
-		protected := admin.Group("", middleware.JWT(cfg))
+		// 后台写操作全部要求 XHR 头（CSRF 纵深防御，配合 SameSite）
+		protected := admin.Group("", middleware.JWT(cfg), middleware.RequireXHR())
 		protected.POST("/password", authH.ChangePassword)
-		protected.GET("/stats", func(c *gin.Context) { h.OK(c, gin.H{"todo": "M2 仪表盘"}) })
+		protected.GET("/profile", authH.GetProfile)
+		protected.PUT("/profile", authH.UpdateProfile)
+		protected.GET("/stats", h.NewStatsHandler(service.NewStatsService(db)).Get)
 
 		// 文章管理（admin 路径下 :id，与前台 :slug 不同组，无 Gin 路由冲突）
 		postSvc := service.NewPostService(db)
@@ -64,9 +70,44 @@ func RegisterAuthRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 		protected.PUT("/posts/:id/status", postH.SetStatus)
 		protected.DELETE("/posts/:id", postH.Delete)
 
-		// 前台公开（/api/posts/:slug）
+		// 前台公开（M3：列表筛选/详情/归档/站点信息/分类标签）
 		api.GET("/posts", postH.ListPublic)
 		api.GET("/posts/:slug", postH.GetBySlugPublic)
+		api.GET("/archive", postH.Archive)
+		api.GET("/site", h.NewSiteHandler(service.NewSiteService(db)).GetPublic)
+		taxH := h.NewTaxonomyHandler(service.NewTaxonomyService(db))
+		api.GET("/categories", taxH.ListCategories)
+		api.GET("/tags", taxH.ListTags)
+
+		// 评论（M4：公开读写 + 后台管理；写请求要求 XHR 头防 CSRF）
+		if commentSvc != nil {
+			commentSvc.Close() // 测试反复装配时释放上一个实例的限流器 goroutine（每个实例只被关闭一次）
+		}
+		commentSvc = service.NewCommentService(db)
+		commentH := h.NewCommentHandler(commentSvc)
+		api.GET("/posts/:slug/comments", commentH.ListPublic)
+		api.POST("/posts/:slug/comments", middleware.RequireXHR(), commentH.Create)
+		protected.GET("/comments", commentH.ListAdmin)
+		protected.PUT("/comments/:id/review", commentH.Review)
+		protected.POST("/comments/:id/reply", commentH.Reply)
+		protected.DELETE("/comments/:id", commentH.Delete)
+
+		// 点赞（M4：指纹匿名标识，POST 要求 XHR 头）
+		likeH := h.NewLikeHandler(service.NewLikeService(db, cfg.LikeSalt))
+		api.GET("/posts/:slug/like", likeH.Status)
+		api.POST("/posts/:slug/like", middleware.RequireXHR(), likeH.Toggle)
+
+		// 站点设置 / 分类标签管理（M4）
+		siteH := h.NewSiteHandler(service.NewSiteService(db))
+		protected.GET("/site", siteH.AdminGet)
+		protected.PUT("/site", siteH.AdminSave)
+		protected.GET("/categories", taxH.ListCategoriesAdmin)
+		protected.POST("/categories", taxH.SaveCategory)
+		protected.DELETE("/categories/:id", taxH.DeleteCategory)
+		protected.GET("/tags", taxH.ListTagsAdmin)
+		protected.POST("/tags", taxH.SaveTag)
+		protected.DELETE("/tags/:id", taxH.DeleteTag)
+		protected.POST("/tags/:id/merge", taxH.MergeTag)
 
 		// 图片上传（含同步缩略图）
 		uploadH := h.NewUploadHandler(service.NewUploadService(cfg.UploadDir, 5<<20))
@@ -78,7 +119,5 @@ func RegisterAuthRoutes(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 func RegisterAll(r *gin.Engine, db *gorm.DB, cfg *config.Config) {
 	r.Use(middleware.RequestID(), middleware.Recover())
 	RegisterAuthRoutes(r, db, cfg)
-	r.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"code": 40004, "msg": "not found"})
-	})
+	r.NoRoute(newSPAStatic(db, cfg).handle)
 }

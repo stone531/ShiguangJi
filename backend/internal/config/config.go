@@ -17,6 +17,7 @@ type Config struct {
 	JWTSecret  string
 	JWTTimeout time.Duration
 	UploadDir  string
+	WebDist    string
 	LikeSalt   string
 	IsProd     bool
 }
@@ -36,6 +37,7 @@ func Load() *Config {
 			JWTSecret:  getEnv("JWT_SECRET", ""),
 			JWTTimeout: 2 * time.Hour,
 			UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
+			WebDist:    getEnv("WEB_DIST", "./dist"),
 			LikeSalt:   getEnv("LIKE_SALT", ""),
 			IsProd:     os.Getenv("APP_ENV") == "prod",
 		}
