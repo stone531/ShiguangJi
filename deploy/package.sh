@@ -6,7 +6,8 @@
 #   GOARCH=arm64 bash deploy/package.sh       # arm 实例
 #
 # 产物：build/blog-centos7.tar.gz
-# 服务器步骤见 deploy/README-部署-centos7.md（包内同名携带）
+# 服务器一键安装：tar xzf blog-centos7.tar.gz && cd blog && sudo bash setup.sh
+# （setup.sh 幂等：重复执行=升级，不覆盖 .env；细节见包内 README-部署-centos7.md）
 
 set -euo pipefail
 
@@ -34,10 +35,11 @@ cp -R "$ROOT/backend/migrations" "$STAGE/migrations"
 cp "$ROOT/deploy/init.sql" \
    "$ROOT/deploy/blog.service" \
    "$ROOT/deploy/blogctl" \
+   "$ROOT/deploy/setup.sh" \
    "$ROOT/deploy/nginx-centos7.conf" \
    "$ROOT/deploy/README-部署-centos7.md" \
    "$ROOT/backend/.env.example" "$STAGE/"
-chmod +x "$STAGE/blogctl"
+chmod +x "$STAGE/blogctl" "$STAGE/setup.sh"
 echo "==> [4/4] 压缩"
 rm -f "$BUILD_DIR/blog-centos7.tar.gz"
 tar -czf "$BUILD_DIR/blog-centos7.tar.gz" -C "$BUILD_DIR/stage" blog

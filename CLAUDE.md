@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 时光集（ShiguangJi）：个人博客，单 Vue SPA（前台 + `/admin` 后台）+ Go API + MySQL 5.6.5+（排序规则用 utf8mb4_unicode_ci，勿用 8.0 专用的 utf8mb4_0900_ai_ci；utf8mb4 索引列不超 191 字符），部署形态为 Nginx 同域反代 + systemd 单二进制。当前进度：M1 后端、M2 后台前端、M3 前台展示站、M4 互动与上线（评论点赞/敏感词/SEO 注入/安全加固/部署文件）全部完成。
 
-仓库内注释与文档均使用中文，新代码保持一致。总设计与各里程碑计划在 `docs/superpowers/`（specs/ 为已评审的总设计，plans/ 为里程碑实施计划）。生产部署文件在 `deploy/`（nginx.conf/blog.service/deploy.sh/backup.sh；CentOS 7 目标机用 `bash deploy/package.sh` 产出离线包 build/blog-centos7.tar.gz，nginx 用 el7 适配版 nginx-centos7.conf——旧 http2 语法、无 TLS1.3，服务器步骤见 deploy/README-部署-centos7.md；端口统一在 .env 配 ADDR(后端)/FRONT_PORT(前端)，服务器端控制脚本 deploy/blogctl 按其生成 nginx 配置；均只交付未实测）。
+仓库内注释与文档均使用中文，新代码保持一致。总设计与各里程碑计划在 `docs/superpowers/`（specs/ 为已评审的总设计，plans/ 为里程碑实施计划）。生产部署文件在 `deploy/`（nginx.conf/blog.service/deploy.sh/backup.sh；CentOS 7 目标机用 `bash deploy/package.sh` 产出离线包 build/blog-centos7.tar.gz，内含一键安装脚本 setup.sh——服务器端 `sudo bash setup.sh` 幂等完成建用户/.env 随机密钥/建库/systemd/nginx/探活，重复执行=升级且不覆盖 .env；nginx 用 el7 适配版 nginx-centos7.conf——旧 http2 语法、无 TLS1.3，服务器步骤见 deploy/README-部署-centos7.md；端口统一在 .env 配 ADDR(后端)/FRONT_PORT(前端)，服务器端控制脚本 deploy/blogctl 按其生成 nginx 配置；均只交付未实测）。
 
 ## 常用命令
 

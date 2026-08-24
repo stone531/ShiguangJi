@@ -6,16 +6,42 @@
 包内容：
 ├── blog-server           # Go 后端（linux/amd64 静态编译，无系统依赖）
 ├── blog-initadmin        # 初始化工具（建表+管理员，可选用 init.sql 代替）
+├── setup.sh              # ⭐ 一键安装/启动脚本（root 执行，幂等）
 ├── dist/                 # 前端构建产物（nginx 托管）
 ├── migrations/           # SQL 迁移（initadmin 用）
 ├── init.sql              # 一键初始化 SQL（建库+建表+初始管理员 admin/admin123456）
 ├── blog.service          # systemd 服务单元
+├── blogctl               # 服务端控制脚本（start/stop/restart/status/nginx/logs）
 ├── nginx-centos7.conf    # nginx 配置（el7 适配版，默认 HTTP 直跑）
 ├── .env.example          # 环境变量模板
 └── README-部署-centos7.md
 ```
 
 前提：服务器已装 MySQL 5.6+ 并在本机（127.0.0.1:3306）运行；需要 root 权限。
+
+---
+
+## 0. 一键安装（推荐）
+
+`setup.sh` 会完成下面第 1–7 步的全部内容：建用户/目录、生成 `.env`（自动随机
+JWT_SECRET/LIKE_SALT/库密码并创建 MySQL 账号）、导入 init.sql、装 systemd 并启动、
+有 nginx 就挂配置、探活。重复执行 = 升级（只更新程序文件，不覆盖 `.env`、不动数据库）。
+
+```bash
+# 本机执行：scp build/blog-centos7.tar.gz root@服务器IP:/tmp/
+tar xzf /tmp/blog-centos7.tar.gz -C /tmp/
+cd /tmp/blog
+sudo bash setup.sh                 # 交互输入一次 MySQL root 密码
+# 或非交互：sudo DB_ROOT_PASS='root密码' bash setup.sh
+```
+
+高级用法：`SKIP_DB=1` 跳过数据库步骤、`SKIP_NGINX=1` 跳过 nginx、
+`MYSQL_BIN=/路径/mysql` 指定客户端。装完即用：
+
+- 博客 `http://服务器IP/`，后台 `http://服务器IP/admin`（admin / admin123456，首登强制改密）
+- 未装 nginx 也不影响访问：Go 会在 `:8080` 直出前端（`http://服务器IP:8080/`）
+
+以下手工步骤仅当需要精细控制、或排查 setup.sh 问题时参考。
 
 ---
 
@@ -155,13 +181,15 @@ mkdir -p /etc/nginx/certs
 
 ## 10. 日常更新
 
-开发机重新打包并上传覆盖即可：
+开发机重新打包并上传，重跑 setup.sh 即可（升级模式：不覆盖 `.env`、不动数据库）：
 
 ```bash
-# 开发机：bash deploy/package.sh
-# scp build/blog-centos7.tar.gz root@服务器:/tmp/  后在服务器重复第 1 步的 cp 部分，然后：
-systemctl restart blog
+# 开发机：bash deploy/package.sh && scp build/blog-centos7.tar.gz root@服务器:/tmp/
+# 服务器：
+tar xzf /tmp/blog-centos7.tar.gz -C /tmp/ && cd /tmp/blog && sudo bash setup.sh
 ```
+
+等价的手工方式（重复第 1 步的 cp 部分后 `systemctl restart blog`）。
 
 （改了数据库结构才需要重导 init.sql 或跑 `sudo -u blog ./blog-initadmin`，注意后者会重置管理员密码。）
 
