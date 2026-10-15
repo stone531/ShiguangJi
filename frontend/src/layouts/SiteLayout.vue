@@ -12,14 +12,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="aurora" aria-hidden="true" />
-  <div class="noise" aria-hidden="true" />
-
-  <header class="glass sticky top-0 z-40 border-x-0 border-t-0">
-    <div class="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4">
-      <RouterLink to="/" class="font-display shrink-0 text-lg font-semibold tracking-wide">
-        <span class="text-gradient">{{ site.siteName }}</span>
-      </RouterLink>
+  <header class="border-b border-dashed border-dim/50">
+    <div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-5">
+      <img
+        v-if="site.info?.avatar"
+        :src="site.info.avatar"
+        alt="博主头像"
+        class="h-6 w-6 rounded-full object-cover"
+      />
+      <RouterLink to="/" class="shrink-0 text-lg font-semibold tracking-wide">{{ site.siteName }}</RouterLink>
       <nav class="ml-auto flex items-center gap-5 text-sm">
         <RouterLink to="/" class="nav-link" :class="{ 'nav-link--active': route.path === '/' }">首页</RouterLink>
         <RouterLink to="/archive" class="nav-link" :class="{ 'nav-link--active': route.path.startsWith('/archive') }">归档</RouterLink>
@@ -29,12 +30,12 @@ onMounted(() => {
     </div>
   </header>
 
-  <main class="mx-auto min-h-[70vh] max-w-6xl px-4 pb-24">
+  <main class="mx-auto min-h-[70vh] max-w-3xl px-4 pb-24">
     <RouterView />
   </main>
 
   <footer class="border-t border-line">
-    <div class="mx-auto flex max-w-6xl flex-col items-center gap-3 px-4 py-8 text-xs text-dim sm:flex-row">
+    <div class="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-8 text-xs text-dim sm:flex-row">
       <span>© {{ new Date().getFullYear() }} {{ site.siteName }} · {{ site.siteDesc }}</span>
       <nav v-if="site.info?.social_links?.length" class="flex gap-4 sm:ml-auto">
         <a
