@@ -37,7 +37,7 @@ onMounted(load)
 
   <section v-else class="archive-timeline mx-auto mt-10 max-w-2xl">
     <div v-for="group in groups" :key="`${group.year}-${group.month}`" class="relative pl-8">
-      <h2 class="font-display sticky top-16 z-10 mb-4 inline-block rounded bg-void/90 px-2 py-1 text-lg font-semibold">
+      <h2 class="font-display sticky top-0 z-10 mb-4 inline-block rounded bg-void/90 px-2 py-1 text-lg font-semibold">
         {{ group.year }} 年 {{ group.month }} 月
         <span class="ml-1 font-mono text-xs text-dim">{{ group.posts.length }}</span>
       </h2>

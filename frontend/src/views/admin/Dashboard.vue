@@ -123,7 +123,7 @@ onMounted(load)
   display: flex;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   cursor: pointer;
 }
 
@@ -140,7 +140,7 @@ onMounted(load)
 }
 
 .comment-time {
-  color: rgba(255, 255, 255, 0.45);
+  color: #6a737d;
   font-size: 12px;
   flex-shrink: 0;
 }

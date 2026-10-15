@@ -77,7 +77,7 @@ body {
 }
 
 @keyframes restore-color {
-  to { background-color: inherit; }
+  to { background-color: transparent; }
 }
 
 .md-body p { margin: 1.1em 0; }
