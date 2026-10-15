@@ -12,6 +12,7 @@ import { getPost, createPost, updatePost, uploadImage } from '@/api/post'
 import type { PostPayload } from '@/api/post'
 import { listCategoriesAdmin, listTagsAdmin, saveTag } from '@/api/taxonomy'
 import { useAutoSave } from '@/composables/useAutoSave'
+import PostPreviewModal from '@/components/admin/PostPreviewModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -215,6 +216,41 @@ const lastSavedAtText = computed(() =>
   lastSavedAt.value ? `上次自动保存于 ${new Date(lastSavedAt.value).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}` : '',
 )
 
+// ---------- 发布前预览（spec §12） ----------
+const previewOpen = ref(false)
+
+/** 预览用的标签名（selectedTagIds → tagOptions 反查） */
+const previewTags = computed(() =>
+  selectedTagIds.value
+    .map((id) => tagOptions.value.find((o) => o.value === id)?.label)
+    .filter((n): n is string => Boolean(n)),
+)
+
+const previewCategory = computed(
+  () => categoryOptions.value.find((o) => o.value === form.category_id)?.label ?? null,
+)
+
+/** 预览前走一遍与 save 相同的校验，拦截明显错误 */
+function openPreview() {
+  if (!form.title.trim()) {
+    message.error('标题不能为空')
+    return
+  }
+  validateSlug()
+  validateVideoUrl()
+  if (slugError.value || videoUrlError.value) {
+    message.error('请修正表单错误后再发布')
+    return
+  }
+  previewOpen.value = true
+}
+
+/** 预览确认发布：发布并关闭预览 */
+function onConfirmPublish() {
+  void save(1)
+  previewOpen.value = false
+}
+
 // ---------- 保存 ----------
 const saving = ref(false)
 function buildPayload(status: 0 | 1): PostPayload {
@@ -295,7 +331,7 @@ onBeforeRouteLeave(() => {
       <div class="header-right">
         <span v-if="lastSavedAtText" class="save-hint">{{ lastSavedAtText }}</span>
         <n-button :loading="saving" @click="save(0)">存草稿</n-button>
-        <n-button type="primary" :loading="saving" @click="save(1)">发布</n-button>
+        <n-button type="primary" :loading="saving" @click="openPreview">发布</n-button>
       </div>
     </div>
 
@@ -366,10 +402,21 @@ onBeforeRouteLeave(() => {
 
     <MdEditor
       v-model="form.content"
-      theme="dark"
+      theme="light"
       language="zh-CN"
       style="height: 60vh"
       @on-upload-img="handleUploadImg"
+    />
+
+    <PostPreviewModal
+      v-model:show="previewOpen"
+      :title="form.title"
+      :content="form.content"
+      :type="form.type"
+      :video-url="form.video_url"
+      :category-name="previewCategory"
+      :tags="previewTags"
+      @confirm="onConfirmPublish"
     />
   </div>
 </template>
@@ -398,7 +445,7 @@ onBeforeRouteLeave(() => {
   opacity: 0.7;
 }
 .meta-grid {
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(0, 0, 0, 0.09);
   border-radius: 8px;
   padding: 16px;
 }
