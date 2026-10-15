@@ -95,8 +95,8 @@ function fmtDate(d: string) {
 </script>
 
 <template>
-  <section class="glass mt-8 rounded-2xl p-6 sm:p-8">
-    <h2 class="font-display mb-6 text-sm font-semibold uppercase tracking-widest text-dim">
+  <section class="mt-12 border-t border-line pt-8">
+    <h2 class="mb-6 text-sm font-semibold text-dim">
       评论 <span class="ml-1 text-accent">{{ total }}</span>
     </h2>
 
@@ -148,14 +148,14 @@ function fmtDate(d: string) {
           type="text"
           placeholder="昵称 *"
           maxlength="20"
-          class="w-full rounded-xl border border-line bg-white/5 px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
+          class="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
         >
         <input
           v-model="form.email"
           type="email"
           placeholder="邮箱（选填，不公开）"
           maxlength="100"
-          class="w-full rounded-xl border border-line bg-white/5 px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
+          class="w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
         >
       </div>
       <!-- 蜜罐：对人类隐藏，机器人默认填充会触发后端静默丢弃 -->
@@ -165,7 +165,7 @@ function fmtDate(d: string) {
         rows="4"
         :placeholder="'说点什么…（' + [...form.content].length + '/500）'"
         maxlength="500"
-        class="mt-4 w-full resize-y rounded-xl border border-line bg-white/5 px-4 py-3 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
+        class="mt-4 w-full resize-y rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-dim/60 focus:border-accent/50"
       />
       <div class="mt-4 flex items-center justify-between">
         <p v-if="successMsg" class="text-xs text-accent">{{ successMsg }}</p>
@@ -173,7 +173,7 @@ function fmtDate(d: string) {
         <span v-else />
         <button
           type="submit"
-          class="rounded-full bg-gradient-to-r from-accent to-accent-2 px-6 py-2 text-sm font-medium text-void transition-opacity hover:opacity-85 disabled:opacity-50"
+          class="rounded-full bg-accent px-6 py-2 text-sm font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
           :disabled="submitting"
         >{{ submitting ? '提交中…' : '发表评论' }}</button>
       </div>

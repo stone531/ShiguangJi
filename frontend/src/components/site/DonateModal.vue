@@ -30,10 +30,10 @@ function close() {
     <Transition name="fade">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
         @click.self="close"
       >
-        <div class="glass w-full max-w-sm rounded-2xl p-6">
+        <div class="w-full max-w-sm rounded-lg border border-line bg-white p-6 shadow-lg">
           <div class="flex items-center justify-between">
             <h3 class="font-semibold">{{ site.info?.donate_text ?? '请我喝杯咖啡 ☕' }}</h3>
             <button class="text-dim transition-colors hover:text-ink" aria-label="关闭" @click="close">✕</button>
