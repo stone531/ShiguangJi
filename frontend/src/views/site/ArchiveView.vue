@@ -25,15 +25,15 @@ onMounted(load)
 
 <template>
   <header class="mt-12 text-center">
-    <h1 class="text-gradient text-3xl font-bold">归档</h1>
+    <h1 class="text-2xl font-bold">归档</h1>
     <p class="mt-2 text-xs text-dim">共 {{ groups.reduce((n, g) => n + g.posts.length, 0) }} 篇</p>
   </header>
 
-  <div v-if="failed" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">
+  <div v-if="failed" class="mt-8 py-10 text-center text-sm text-dim">
     加载失败，<button class="text-accent hover:underline" @click="load">重试</button>
   </div>
-  <div v-else-if="loading" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">加载中…</div>
-  <div v-else-if="!groups.length" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">还没有发布过内容</div>
+  <div v-else-if="loading" class="mt-8 py-10 text-center text-sm text-dim">加载中…</div>
+  <div v-else-if="!groups.length" class="mt-8 py-10 text-center text-sm text-dim">还没有发布过内容</div>
 
   <section v-else class="archive-timeline mx-auto mt-10 max-w-2xl">
     <div v-for="group in groups" :key="`${group.year}-${group.month}`" class="relative pl-8">
@@ -45,7 +45,7 @@ onMounted(load)
         <li v-for="p in group.posts" :key="p.id">
           <RouterLink
             :to="`/post/${p.slug}`"
-            class="group flex items-baseline gap-4 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/5"
+            class="group flex items-baseline gap-4 rounded-lg px-2 py-2.5 transition-colors hover:bg-black/[0.03]"
           >
             <span class="font-mono text-xs text-dim">{{ new Date(p.published_at).toLocaleDateString('zh-CN') }}</span>
             <span class="truncate transition-colors group-hover:text-accent">{{ p.title }}</span>
@@ -71,6 +71,6 @@ onMounted(load)
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: linear-gradient(#22d3ee, #8b5cf6);
+  background: var(--color-accent);
 }
 </style>

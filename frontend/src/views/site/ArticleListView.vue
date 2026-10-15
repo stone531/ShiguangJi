@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { listPublicPosts } from '@/api/public'
 import { useSiteStore } from '@/stores/site'
-import ArticleCard from '@/components/site/ArticleCard.vue'
+import PostList from '@/components/site/PostList.vue'
 import type { PostCard } from '@/types/api'
 
 /** 分类/标签筛选列表页（/category/:name 与 /tag/:name 复用） */
@@ -73,21 +73,21 @@ onMounted(() => {
 
 <template>
   <header class="mt-12 text-center">
-    <p class="font-display text-xs uppercase tracking-widest text-dim">{{ mode === 'category' ? '分类' : '标签' }}</p>
-    <h1 class="text-gradient mt-2 text-3xl font-bold">{{ name }}</h1>
+    <p class="text-xs text-dim">{{ mode === 'category' ? '分类' : '标签' }}</p>
+    <h1 class="mt-2 text-2xl font-bold">{{ name }}</h1>
     <p class="mt-2 text-xs text-dim">共 {{ total }} 篇</p>
   </header>
 
-  <div v-if="failed" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">
+  <div v-if="failed" class="mt-8 py-10 text-center text-sm text-dim">
     加载失败，<button class="text-accent hover:underline" @click="load">重试</button>
   </div>
-  <div v-else-if="loading && !list.length" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">加载中…</div>
-  <div v-else-if="!list.length" class="glass mt-8 rounded-2xl p-10 text-center text-sm text-dim">
+  <div v-else-if="loading && !list.length" class="mt-8 py-10 text-center text-sm text-dim">加载中…</div>
+  <div v-else-if="!list.length" class="mt-8 py-10 text-center text-sm text-dim">
     该{{ mode === 'category' ? '分类' : '标签' }}下暂无内容
     <RouterLink to="/" class="ml-2 text-accent hover:underline">回首页 →</RouterLink>
   </div>
-  <div v-else class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-    <ArticleCard v-for="p in list" :key="p.id" :post="p" />
+  <div v-else class="mt-8">
+    <PostList :posts="list" />
   </div>
 
   <nav v-if="totalPages > 1" class="mt-8 flex items-center justify-center gap-4 text-sm">
