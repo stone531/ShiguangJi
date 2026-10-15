@@ -1,0 +1,179 @@
+/* 前台清新极简浅色主题（tao.zz.ac 风格：白底黑字、霞鹜文楷、阅读为主，零装饰）。
+   霞鹜文楷走 CDN 按 unicode-range 分包，页面只加载用到的字形；失败回退系统字体。 */
+@import url('https://dl.lehu.in/wk/lxgwwenkai-light.css');
+@import url('https://dl.lehu.in/wk/lxgwwenkai-regular.css');
+@import url('https://dl.lehu.in/wk/lxgwwenkai-bold.css');
+@import '@fontsource/jetbrains-mono/400.css';
+@import 'tailwindcss';
+
+@theme {
+  /* token 同名翻值：所有 text-ink/text-dim/border-line/bg-void 工具类自动切浅色 */
+  --font-sans: 'LXGW WenKai', system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-display: system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --color-void: #ffffff;      /* 页面底色（白） */
+  --color-panel: #f6f8fa;     /* 浅灰面板（表头等） */
+  --color-ink: #24292f;       /* 正文墨色 */
+  --color-dim: #6a737d;       /* 次要文字 */
+  --color-line: #e5e7eb;      /* 分隔线 */
+  --color-accent: #268bd2;    /* Solarized Blue：链接/强调 */
+  --color-accent-2: #2aa198;  /* Solarized Cyan：行内代码 */
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* ===== 「创作不易请勿广告」徽章（tao #noad 样式照搬：白字红底加粗） ===== */
+.noad-badge {
+  color: #fff;
+  background: red;
+  border-radius: 0.2em;
+  font-weight: bold;
+  padding: 0.2em;
+  opacity: 0;
+  animation: noad-fade-in 2s ease-in forwards;
+}
+
+@keyframes noad-fade-in {
+  to { opacity: 1; }
+}
+
+/* ===== Markdown 正文排版（spec §9：18px 文楷 / 行高 1.8 / 42em 行宽） ===== */
+.md-body {
+  max-width: 42em;
+  margin: 0 auto;
+  font-size: 1.125rem;
+  line-height: 1.8;
+  word-break: break-word;
+}
+
+.md-body > :first-child { margin-top: 0; }
+
+/* 标题：系统 sans 加粗，锚点跳转黄底闪高亮 3s 渐隐（tao :target 同款） */
+.md-body h1, .md-body h2, .md-body h3, .md-body h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1.6em 0 0.7em;
+  scroll-margin-top: 24px;
+}
+
+.md-body h1 { font-size: 1.65rem; }
+.md-body h2 { font-size: 1.35rem; }
+.md-body h3 { font-size: 1.15rem; }
+.md-body h4 { font-size: 1.02rem; }
+
+.md-body :target {
+  background-color: yellow;
+  animation: restore-color 3s forwards;
+}
+
+@keyframes restore-color {
+  to { background-color: transparent; }
+}
+
+.md-body p { margin: 1.1em 0; }
+
+.md-body a {
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(38, 139, 210, 0.45);
+}
+
+.md-body a:hover { border-bottom-style: solid; }
+
+/* 图片：居中 + 灰色小字图注（figcaption 由 MarkdownView 渲染注入） */
+.md-body img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 1.2em auto;
+  cursor: zoom-in;
+}
+
+.md-body figure { margin: 1.2em 0; text-align: center; }
+
+.md-body figcaption {
+  color: var(--color-dim);
+  font-size: 0.8rem;
+  margin-top: 0.4em;
+}
+
+.md-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+/* 行内代码：青色文字，无底色无边框（tao 同款） */
+.md-body :not(pre) > code {
+  color: var(--color-accent-2);
+}
+
+/* 代码块：Solarized Light 米黄底 */
+.md-body pre {
+  background: #fdf6e3;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+
+.md-body pre code {
+  display: block;
+  padding: 1em 1.2em;
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.md-body blockquote {
+  margin: 1.2em 0;
+  padding: 0.1em 1.2em;
+  border-left: 3px solid var(--color-line);
+  color: var(--color-dim);
+}
+
+.md-body ul, .md-body ol { padding-left: 1.5em; margin: 0.9em 0; }
+.md-body li { margin: 0.35em 0; }
+.md-body li::marker { color: var(--color-dim); }
+
+.md-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92em;
+}
+
+.md-body th, .md-body td {
+  border: 1px solid var(--color-line);
+  padding: 0.5em 0.8em;
+}
+
+.md-body th { background: var(--color-panel); font-weight: 600; }
+
+.md-body hr { border: none; border-top: 1px solid var(--color-line); margin: 2em 0; }
+
+/* ===== View Transitions 页面切换（不支持的浏览器自动降级） ===== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+}
+
+/* ===== 滚动条（浅色） ===== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ===== 动效关照 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .noad-badge {
+    animation: none;
+    opacity: 1;
+  }
+}

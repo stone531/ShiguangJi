@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import {
-  NAlert, NButton, NDynamicInput, NForm, NFormItem, NInput, NInputNumber,
+  NButton, NDynamicInput, NForm, NFormItem, NInput, NInputNumber,
   NSwitch, NUpload, NUploadDragger, useMessage,
 } from 'naive-ui'
 import type { UploadFileInfo } from 'naive-ui'
-import { getSiteSettings, saveSiteSettings, isSiteApiAvailable } from '@/api/site'
+import { getSiteSettings, saveSiteSettings } from '@/api/site'
 import { uploadImage } from '@/api/post'
-import type { SiteSettingVO } from '@/types/api'
+import type { SiteAdminVO } from '@/types/api'
 
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const isMock = ref(false)
 
-const form = reactive<SiteSettingVO>({
+const form = reactive<SiteAdminVO>({
   site_name: '',
   site_desc: '',
   avatar: '',
@@ -24,15 +23,15 @@ const form = reactive<SiteSettingVO>({
   social_links: [],
   page_size: 10,
   comment_enabled: true,
+  sensitive_words: '',
 })
 
 async function load() {
   loading.value = true
   try {
-    const [data, available] = await Promise.all([getSiteSettings(), isSiteApiAvailable()])
+    const data = await getSiteSettings()
     Object.assign(form, data)
     form.social_links = Array.isArray(data.social_links) ? data.social_links.map((l) => ({ ...l })) : []
-    isMock.value = !available
   } catch (e) {
     message.error(e instanceof Error ? e.message : '加载失败')
   } finally {
@@ -41,7 +40,7 @@ async function load() {
 }
 
 // 通过真实上传接口上传图片并回填 URL
-function makeUploadRequest(field: keyof SiteSettingVO) {
+function makeUploadRequest(field: keyof SiteAdminVO) {
   return async ({ file, onFinish, onError }: {
     file: UploadFileInfo
     onFinish: () => void
@@ -67,7 +66,7 @@ const avatarUpload = { customRequest: makeUploadRequest('avatar') }
 const wechatUpload = { customRequest: makeUploadRequest('wechat_qr') }
 const alipayUpload = { customRequest: makeUploadRequest('alipay_qr') }
 
-function onRemove(field: keyof SiteSettingVO) {
+function onRemove(field: keyof SiteAdminVO) {
   ;(form as unknown as Record<string, unknown>)[field as string] = ''
 }
 
@@ -86,11 +85,7 @@ async function onSave() {
       ...form,
       social_links: form.social_links.filter((l) => l.name.trim() && l.url.trim()),
     })
-    if (isMock.value) {
-      message.success('已保存（M4 接入后端后生效）')
-    } else {
-      message.success('已保存')
-    }
+    message.success('已保存')
   } catch (e) {
     message.error(e instanceof Error ? e.message : '保存失败')
   } finally {
@@ -103,10 +98,6 @@ onMounted(load)
 
 <template>
   <div class="site-settings" :class="{ loading }">
-    <n-alert v-if="isMock" type="info" :show-icon="true">
-      站点设置接口后端将在 M4 提供，当前为默认示例数据（图片上传为真实接口）
-    </n-alert>
-
     <n-form label-placement="top" class="settings-form">
       <div class="grid-2">
         <n-form-item label="站点名" required>
@@ -144,6 +135,16 @@ onMounted(load)
           </n-switch>
         </n-form-item>
       </div>
+
+      <n-form-item label="评论敏感词（换行分隔，实时生效；命中即拒评，另拦截超 2 条链接）">
+        <n-input
+          v-model:value="form.sensitive_words"
+          type="textarea"
+          :rows="5"
+          maxlength="5000"
+          placeholder="每行一个词，如：&#10;垃圾&#10;广告"
+        />
+      </n-form-item>
 
       <n-form-item label="赞赏文案">
         <n-input v-model:value="form.donate_text" placeholder="写得不错，请我喝杯咖啡 ☕" maxlength="100" />

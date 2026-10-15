@@ -40,6 +40,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Fail(c, err)
 		return
 	}
+	sameSite := http.SameSiteLaxMode
+	if h.cfg.IsProd { // 生产收紧为 Strict，跨站请求不带 cookie（spec §8）
+		sameSite = http.SameSiteStrictMode
+	}
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     middleware.CookieName,
 		Value:    token,
@@ -47,7 +51,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Expires:  time.Now().Add(h.cfg.JWTTimeout),
 		HttpOnly: true,
 		Secure:   h.cfg.IsProd,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 	})
 	OK(c, gin.H{
 		"nickname":             admin.Nickname,
@@ -70,6 +74,35 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 	adminID := c.GetUint("adminID")
 	if err := h.svc.ChangePassword(c.Request.Context(), adminID, req.OldPassword, req.NewPassword); err != nil {
+		Fail(c, err)
+		return
+	}
+	OK(c, nil)
+}
+
+type profileReq struct {
+	Nickname string `json:"nickname" binding:"required,max=20"`
+	Avatar   string `json:"avatar" binding:"max=255"`
+}
+
+// GetProfile 读取博主资料（GET /api/admin/profile）。
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+	vo, err := h.svc.GetProfile(c.Request.Context(), c.GetUint("adminID"))
+	if err != nil {
+		Fail(c, err)
+		return
+	}
+	OK(c, vo)
+}
+
+// UpdateProfile 更新昵称/头像（PUT /api/admin/profile）。
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	var req profileReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, errs.ErrParam)
+		return
+	}
+	if err := h.svc.UpdateProfile(c.Request.Context(), c.GetUint("adminID"), req.Nickname, req.Avatar); err != nil {
 		Fail(c, err)
 		return
 	}

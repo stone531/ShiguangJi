@@ -45,6 +45,10 @@ func JWT(cfg *config.Config) gin.HandlerFunc {
 }
 
 func setAuthCookie(c *gin.Context, token string, exp time.Time, cfg *config.Config) {
+	sameSite := http.SameSiteLaxMode
+	if cfg.IsProd { // 生产收紧为 Strict，跨站请求不带 cookie（spec §8）
+		sameSite = http.SameSiteStrictMode
+	}
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     CookieName,
 		Value:    token,
@@ -52,7 +56,7 @@ func setAuthCookie(c *gin.Context, token string, exp time.Time, cfg *config.Conf
 		Expires:  exp,
 		HttpOnly: true,
 		Secure:   cfg.IsProd,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: sameSite,
 	})
 }
 

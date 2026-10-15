@@ -8,6 +8,8 @@ export const http = axios.create({
   baseURL: '/api',
   timeout: 15_000,
   withCredentials: true,
+  // CSRF 纵深防御：写接口要求该头（后端 RequireXHR 校验）
+  headers: { 'X-Requested-With': 'XMLHttpRequest' },
 })
 
 http.interceptors.response.use(
@@ -27,7 +29,7 @@ http.interceptors.response.use(
       useAdminStore().clear()
       router.push('/admin/login')
     }
-    // 保留原始 AxiosError 供 isNotFound 等 404 降级判定；message 供 UI 展示
+    // 保留原始 AxiosError 供调用方按需判定（如取 HTTP 状态码）；message 供 UI 展示
     const wrapped = new Error(error.response?.data?.msg ?? '网络错误，请稍后重试')
     ;(wrapped as Error & { cause?: unknown }).cause = error
     return Promise.reject(wrapped)

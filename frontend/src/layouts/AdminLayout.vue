@@ -3,12 +3,8 @@ import { computed, h, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import {
   NAvatar,
-  NButton,
   NDropdown,
-  NForm,
-  NFormItem,
   NIcon,
-  NInput,
   NLayout,
   NLayoutContent,
   NLayoutHeader,
@@ -16,18 +12,13 @@ import {
   NMenu,
   NModal,
   useDialog,
-  useMessage,
-  type FormInst,
-  type FormItemRule,
-  type FormRules,
   type MenuOption,
 } from 'naive-ui'
-import { changePassword } from '@/api/auth'
+import ChangePasswordForm from '@/components/admin/ChangePasswordForm.vue'
 import { useAdminStore } from '@/stores/admin'
 
 const router = useRouter()
 const dialog = useDialog()
-const message = useMessage()
 const adminStore = useAdminStore()
 
 /* ---------- 侧边导航 ---------- */
@@ -54,6 +45,11 @@ const menuOptions: MenuOption[] = [
     icon: renderEmoji('💬'),
   },
   {
+    label: () => h(RouterLink, { to: '/admin/profile' }, { default: () => '个人资料' }),
+    key: '/admin/profile',
+    icon: renderEmoji('👤'),
+  },
+  {
     label: () => h(RouterLink, { to: '/admin/settings' }, { default: () => '站点设置' }),
     key: '/admin/settings',
     icon: renderEmoji('⚙️'),
@@ -67,12 +63,15 @@ const nickname = computed(() => adminStore.info?.nickname ?? '管理员')
 const avatar = computed(() => adminStore.info?.avatar ?? '')
 
 const userOptions = [
+  { label: '个人资料', key: 'profile' },
   { label: '修改密码', key: 'change-password' },
   { label: '退出登录', key: 'logout' },
 ]
 
 function handleUserAction(key: string) {
-  if (key === 'change-password') {
+  if (key === 'profile') {
+    router.push('/admin/profile')
+  } else if (key === 'change-password') {
     pwdModal.show = true
   } else if (key === 'logout') {
     dialog.warning({
@@ -88,54 +87,9 @@ function handleUserAction(key: string) {
   }
 }
 
-/* ---------- 修改密码弹窗 ---------- */
-const pwdModal = reactive({ show: false, loading: false })
-const pwdFormRef = ref<FormInst | null>(null)
-const pwdModel = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
-
-const pwdRules: FormRules = {
-  oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    {
-      validator: (_: FormItemRule, v: string) => v.length >= 8 && v.length <= 72,
-      message: '密码长度 8-72 个字符',
-      trigger: 'blur',
-    },
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
-    {
-      validator: (_: FormItemRule, v: string) => v === pwdModel.newPassword,
-      message: '两次输入的密码不一致',
-      trigger: 'blur',
-    },
-  ],
-}
-
-function resetPwdForm() {
-  pwdModel.oldPassword = ''
-  pwdModel.newPassword = ''
-  pwdModel.confirmPassword = ''
-  pwdFormRef.value?.restoreValidation()
-}
-
-async function handleChangePassword() {
-  const valid = await pwdFormRef.value?.validate().catch(() => false)
-  if (!valid) return
-  pwdModal.loading = true
-  try {
-    await changePassword(pwdModel.oldPassword, pwdModel.newPassword)
-    message.success('密码修改成功')
-    pwdModal.show = false
-    adminStore.patchMustChangePassword()
-    resetPwdForm()
-  } catch (err) {
-    message.error(err instanceof Error ? err.message : '修改失败')
-  } finally {
-    pwdModal.loading = false
-  }
-}
+/* ---------- 修改密码弹窗（表单逻辑在 ChangePasswordForm） ---------- */
+const pwdModal = reactive({ show: false })
+const pwdFormRef = ref<InstanceType<typeof ChangePasswordForm> | null>(null)
 </script>
 
 <template>
@@ -187,33 +141,9 @@ async function handleChangePassword() {
     preset="card"
     title="修改密码"
     style="width: 420px"
-    @after-leave="resetPwdForm"
+    @after-leave="pwdFormRef?.reset()"
   >
-    <n-form ref="pwdFormRef" :model="pwdModel" :rules="pwdRules" label-placement="top">
-      <n-form-item label="旧密码" path="oldPassword">
-        <n-input v-model:value="pwdModel.oldPassword" type="password" show-password-on="click" />
-      </n-form-item>
-      <n-form-item label="新密码" path="newPassword">
-        <n-input v-model:value="pwdModel.newPassword" type="password" show-password-on="click" />
-      </n-form-item>
-      <n-form-item label="确认新密码" path="confirmPassword">
-        <n-input
-          v-model:value="pwdModel.confirmPassword"
-          type="password"
-          show-password-on="click"
-          @keyup.enter="handleChangePassword"
-        />
-      </n-form-item>
-      <n-button
-        type="primary"
-        block
-        :loading="pwdModal.loading"
-        :disabled="pwdModal.loading"
-        @click="handleChangePassword"
-      >
-        确认修改
-      </n-button>
-    </n-form>
+    <ChangePasswordForm ref="pwdFormRef" @success="pwdModal.show = false" />
   </n-modal>
 </template>
 

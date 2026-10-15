@@ -2,7 +2,9 @@
 package config
 
 import (
+	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -17,6 +19,7 @@ type Config struct {
 	JWTSecret  string
 	JWTTimeout time.Duration
 	UploadDir  string
+	WebDist    string
 	LikeSalt   string
 	IsProd     bool
 }
@@ -30,12 +33,19 @@ var (
 func Load() *Config {
 	once.Do(func() {
 		_ = godotenv.Load() // .env 不存在时用真实环境变量
+		dsn := getEnv("DSN", "root:root@tcp(127.0.0.1:3306)/personal_blog?collation=utf8mb4_unicode_ci&parseTime=True&loc=Local")
+		if user := os.Getenv("DB_USER"); user != "" {
+			// 简单形式：离散 DB_* 变量优先于 DSN，免拼连接串
+			dsn = buildDSN(getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306"),
+				user, os.Getenv("DB_PASSWORD"), getEnv("DB_NAME", "personal_blog"))
+		}
 		global = &Config{
 			Addr:       getEnv("ADDR", ":8080"),
-			DSN:        getEnv("DSN", "root:root@tcp(127.0.0.1:3306)/personal_blog?charset=utf8mb4&parseTime=True&loc=Local"),
+			DSN:        dsn,
 			JWTSecret:  getEnv("JWT_SECRET", ""),
 			JWTTimeout: 2 * time.Hour,
 			UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
+			WebDist:    getEnv("WEB_DIST", "./dist"),
 			LikeSalt:   getEnv("LIKE_SALT", ""),
 			IsProd:     os.Getenv("APP_ENV") == "prod",
 		}
@@ -54,4 +64,11 @@ func getEnv(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// buildDSN 由离散变量组装 MySQL DSN（go-sql-driver 格式）；
+// 密码可能含 @ : / 等特殊字符，按驱动要求做 URL 转义。
+func buildDSN(host, port, user, pass, name string) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?collation=utf8mb4_unicode_ci&parseTime=True&loc=Local",
+		url.QueryEscape(user), url.QueryEscape(pass), host, port, name)
 }

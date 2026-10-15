@@ -1,6 +1,6 @@
 -- 001_init.sql — 初始建表（对应 spec §4 表字典）
--- 要求 MySQL 8.0+（utf8mb4_0900_ai_ci）
--- 引擎 InnoDB，字符集 utf8mb4，排序规则 utf8mb4_0900_ai_ci
+-- 要求 MySQL 5.6.5+（utf8mb4_unicode_ci）
+-- 引擎 InnoDB，字符集 utf8mb4，排序规则 utf8mb4_unicode_ci（0900 系列为 8.0 专用，5.6 不支持）
 
 -- 4.1 admins 管理员
 CREATE TABLE IF NOT EXISTS `admins` (
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.3 categories 分类（先于 posts，供 FK 引用）
 CREATE TABLE IF NOT EXISTS `categories` (
@@ -25,13 +25,13 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.2 posts 内容表
 CREATE TABLE IF NOT EXISTS `posts` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` VARCHAR(200) NOT NULL,
-  `slug` VARCHAR(200) NOT NULL,
+  `slug` VARCHAR(191) NOT NULL, -- 191×4=764 字节 ≤ 5.6 InnoDB 767 前缀上限
   `summary` VARCHAR(500) DEFAULT NULL,
   `cover` VARCHAR(255) DEFAULT NULL,
   `content` LONGTEXT NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS `posts` (
   KEY `idx_is_featured` (`is_featured`),
   KEY `idx_deleted_at` (`deleted_at`),
   CONSTRAINT `fk_posts_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.4 tags 标签
 CREATE TABLE IF NOT EXISTS `tags` (
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.5 post_tags 文章标签关联
 CREATE TABLE IF NOT EXISTS `post_tags` (
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS `post_tags` (
   KEY `idx_tag` (`tag_id`),
   CONSTRAINT `fk_post_tags_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_post_tags_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.6 comments 评论
 CREATE TABLE IF NOT EXISTS `comments` (
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS `comments` (
   KEY `idx_status_created` (`status`, `created_at`),
   KEY `idx_ip_created` (`ip`, `created_at`),
   CONSTRAINT `fk_comments_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.7 likes 点赞
 CREATE TABLE IF NOT EXISTS `likes` (
@@ -108,14 +108,14 @@ CREATE TABLE IF NOT EXISTS `likes` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_post_fp` (`post_id`, `fingerprint`),
   CONSTRAINT `fk_likes_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4.8 site_settings 站点设置
 CREATE TABLE IF NOT EXISTS `site_settings` (
   `setting_key` VARCHAR(50) NOT NULL,
   `setting_value` TEXT,
   PRIMARY KEY (`setting_key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 预置配置键默认值（spec §4.8）
 INSERT IGNORE INTO `site_settings` (`setting_key`, `setting_value`) VALUES
