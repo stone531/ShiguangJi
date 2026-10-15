@@ -1,26 +1,28 @@
-/* 前台暗色科技风主题（spec §6.1.1：轻量 CSS 为主，零重型 3D/粒子）。
-   字体本地打包（@fontsource），中文走系统字体栈——禁止全量中文 webfont。 */
-@import '@fontsource-variable/space-grotesk';
+/* 前台清新极简浅色主题（tao.zz.ac 风格：白底黑字、霞鹜文楷、阅读为主，零装饰）。
+   霞鹜文楷走 CDN 按 unicode-range 分包，页面只加载用到的字形；失败回退系统字体。 */
+@import url('https://dl.lehu.in/wk/lxgwwenkai-light.css');
+@import url('https://dl.lehu.in/wk/lxgwwenkai-regular.css');
+@import url('https://dl.lehu.in/wk/lxgwwenkai-bold.css');
 @import '@fontsource/jetbrains-mono/400.css';
-@import '@fontsource/jetbrains-mono/700.css';
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
-  --font-display: 'Space Grotesk Variable', system-ui, sans-serif;
+  /* token 同名翻值：所有 text-ink/text-dim/border-line/bg-void 工具类自动切浅色 */
+  --font-sans: 'LXGW WenKai', system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+  --font-display: system-ui, -apple-system, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-  --color-void: #08080d;
-  --color-panel: #10101a;
-  --color-ink: #e6e9f5;
-  --color-dim: #9aa3c0;
-  --color-line: rgba(255, 255, 255, 0.08);
-  --color-accent: #22d3ee;
-  --color-accent-2: #8b5cf6;
+  --color-void: #ffffff;      /* 页面底色（白） */
+  --color-panel: #f6f8fa;     /* 浅灰面板（表头等） */
+  --color-ink: #24292f;       /* 正文墨色 */
+  --color-dim: #6a737d;       /* 次要文字 */
+  --color-line: #e5e7eb;      /* 分隔线 */
+  --color-accent: #268bd2;    /* Solarized Blue：链接/强调 */
+  --color-accent-2: #2aa198;  /* Solarized Cyan：行内代码 */
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -29,133 +31,79 @@ body {
   font-family: var(--font-sans);
 }
 
-/* ===== 文字渐变 ===== */
-.text-gradient {
-  background: linear-gradient(120deg, #22d3ee, #8b5cf6 60%, #e879f9);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* ===== Aurora 背景：暗色底上缓慢漂移的极光色斑 ===== */
-.aurora {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.aurora::before,
-.aurora::after {
-  content: '';
-  position: absolute;
-  width: 60vmax;
-  height: 60vmax;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.16;
-}
-
-.aurora::before {
-  top: -20vmax;
-  left: -10vmax;
-  background: radial-gradient(circle, #22d3ee, transparent 65%);
-  animation: aurora-drift-a 26s ease-in-out infinite alternate;
-}
-
-.aurora::after {
-  right: -15vmax;
-  bottom: -25vmax;
-  background: radial-gradient(circle, #8b5cf6, transparent 65%);
-  animation: aurora-drift-b 32s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-drift-a {
-  from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(12vmax, 8vmax) scale(1.25); }
-}
-
-@keyframes aurora-drift-b {
-  from { transform: translate(0, 0) scale(1.15); }
-  to { transform: translate(-10vmax, -8vmax) scale(0.9); }
-}
-
-/* ===== 噪点纹理：SVG feTurbulence，压住纯渐变的廉价感 ===== */
-.noise {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* ===== 玻璃卡片 ===== */
-.glass {
-  background: rgba(16, 16, 26, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--color-line);
-}
-
-/* ===== 光标聚光卡片：mousemove 更新 --mx/--my（组件内 20 行内实现） ===== */
-.spotlight {
-  position: relative;
-}
-
-.spotlight::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), rgba(139, 92, 246, 0.16), transparent 65%);
+/* ===== 「创作不易请勿广告」徽章（tao #noad 样式照搬：白字红底加粗） ===== */
+.noad-badge {
+  color: #fff;
+  background: red;
+  border-radius: 0.2em;
+  font-weight: bold;
+  padding: 0.2em;
   opacity: 0;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
+  animation: noad-fade-in 2s ease-in forwards;
 }
 
-.spotlight:hover::before {
-  opacity: 1;
+@keyframes noad-fade-in {
+  to { opacity: 1; }
 }
 
-/* ===== Markdown 正文排版（详情页 ~720px，spec §6.2） ===== */
+/* ===== Markdown 正文排版（spec §9：18px 文楷 / 行高 1.8 / 42em 行宽） ===== */
 .md-body {
-  max-width: 720px;
+  max-width: 42em;
   margin: 0 auto;
-  line-height: 1.85;
+  font-size: 1.125rem;
+  line-height: 1.8;
   word-break: break-word;
 }
 
 .md-body > :first-child { margin-top: 0; }
 
+/* 标题：系统 sans 加粗，锚点跳转黄底闪高亮 3s 渐隐（tao :target 同款） */
 .md-body h1, .md-body h2, .md-body h3, .md-body h4 {
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 700;
   line-height: 1.35;
   margin: 1.6em 0 0.7em;
-  scroll-margin-top: 90px; /* 锚点跳转避开吸顶导航 */
+  scroll-margin-top: 24px;
 }
 
 .md-body h1 { font-size: 1.65rem; }
-.md-body h2 { font-size: 1.35rem; padding-bottom: 0.35em; border-bottom: 1px solid var(--color-line); }
+.md-body h2 { font-size: 1.35rem; }
 .md-body h3 { font-size: 1.15rem; }
 .md-body h4 { font-size: 1.02rem; }
 
-.md-body p { margin: 0.9em 0; }
+.md-body :target {
+  background-color: yellow;
+  animation: restore-color 3s forwards;
+}
+
+@keyframes restore-color {
+  to { background-color: inherit; }
+}
+
+.md-body p { margin: 1.1em 0; }
 
 .md-body a {
   color: var(--color-accent);
   text-decoration: none;
-  border-bottom: 1px dashed rgba(34, 211, 238, 0.4);
+  border-bottom: 1px dashed rgba(38, 139, 210, 0.45);
 }
 
 .md-body a:hover { border-bottom-style: solid; }
 
+/* 图片：居中 + 灰色小字图注（figcaption 由 MarkdownView 渲染注入） */
 .md-body img {
   max-width: 100%;
-  border-radius: 10px;
+  border-radius: 4px;
   margin: 1.2em auto;
   cursor: zoom-in;
+}
+
+.md-body figure { margin: 1.2em 0; text-align: center; }
+
+.md-body figcaption {
+  color: var(--color-dim);
+  font-size: 0.8rem;
+  margin-top: 0.4em;
 }
 
 .md-body code {
@@ -163,17 +111,16 @@ body {
   font-size: 0.88em;
 }
 
+/* 行内代码：青色文字，无底色无边框（tao 同款） */
 .md-body :not(pre) > code {
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 6px;
-  padding: 0.15em 0.4em;
+  color: var(--color-accent-2);
 }
 
+/* 代码块：Solarized Light 米黄底 */
 .md-body pre {
-  border-radius: 12px;
+  background: #fdf6e3;
+  border-radius: 4px;
   overflow-x: auto;
-  border: 1px solid var(--color-line);
   margin: 1.2em 0;
 }
 
@@ -187,13 +134,13 @@ body {
 .md-body blockquote {
   margin: 1.2em 0;
   padding: 0.1em 1.2em;
-  border-left: 3px solid;
-  border-image: linear-gradient(#22d3ee, #8b5cf6) 1;
+  border-left: 3px solid var(--color-line);
   color: var(--color-dim);
 }
 
 .md-body ul, .md-body ol { padding-left: 1.5em; margin: 0.9em 0; }
 .md-body li { margin: 0.35em 0; }
+.md-body li::marker { color: var(--color-dim); }
 
 .md-body table {
   width: 100%;
@@ -207,7 +154,7 @@ body {
   padding: 0.5em 0.8em;
 }
 
-.md-body th { background: rgba(255, 255, 255, 0.04); font-weight: 600; }
+.md-body th { background: var(--color-panel); font-weight: 600; }
 
 .md-body hr { border: none; border-top: 1px solid var(--color-line); margin: 2em 0; }
 
@@ -217,16 +164,16 @@ body {
   animation-duration: 0.22s;
 }
 
-/* ===== 滚动条 ===== */
+/* ===== 滚动条（浅色） ===== */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.25); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ===== 动效关照 ===== */
 @media (prefers-reduced-motion: reduce) {
-  .aurora::before,
-  .aurora::after {
+  .noad-badge {
     animation: none;
+    opacity: 1;
   }
 }
