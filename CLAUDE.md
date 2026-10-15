@@ -45,7 +45,7 @@ npx vue-tsc --noEmit -p tsconfig.app.json   # 仅类型检查（strict）
 
 ### 前端
 
-- 单 SPA 双路由区：`/`（前台 SiteLayout，暗色科技风）与 `/admin/*`（路由守卫查 Pinia admin store），全部懒加载独立 chunk。路径别名 `@` → `src/`。样式：Tailwind v4 + `src/styles/theme.css`（token/aurora/噪点/聚光/`.md-body` 排版）。
+- 单 SPA 双路由区：`/`（前台 SiteLayout，清新极简浅色风：白底、霞鹜文楷 CDN、窄栏 3xl、纯文字列表）与 `/admin/*`（路由守卫查 Pinia admin store，Naive UI 浅色主题、主色 #268bd2 与前台同源），全部懒加载独立 chunk。路径别名 `@` → `src/`。样式：Tailwind v4 + `src/styles/theme.css`（@theme token 同名翻值即可全站换肤；`.md-body` 排版、`.noad-badge` 红徽章、`:target` 锚点高亮）。
 - UI 组件双轨：后台 `/admin` 用 Naive UI + md-editor-v3 编辑器；前台展示站不用组件库，全手写 Tailwind 组件（`components/site/`）。新增界面先看目标路由区用的是哪一套。
 - Markdown 渲染管线（`components/site/MarkdownView.vue`）：markdown-it（`html:false`）→ DOMPurify → v-html → Shiki 异步高亮。改渲染逻辑时保持该顺序，勿绕过净化。
 - `src/api/http.ts` axios 单例：`code≠0` 统一 reject；20001/20002 或 HTTP 401 → 清空 admin store 并跳 `/admin/login`；默认头带 `X-Requested-With: XMLHttpRequest`（后端对除登录外的全部 `/api` 写操作强制校验该头，CSRF 纵深防御，前端绕过 `http.ts` 的自建请求需自行携带）。新接口一律走该文件的 `get/post/put/del` 封装。
