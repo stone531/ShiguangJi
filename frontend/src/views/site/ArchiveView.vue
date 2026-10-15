@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getArchive } from '@/api/public'
+import { fmtDate } from '@/utils/date'
 import type { ArchiveGroup } from '@/types/api'
 
 /** 归档：按年月分组的时间线（spec §6.1） */
@@ -47,7 +48,7 @@ onMounted(load)
             :to="`/post/${p.slug}`"
             class="group flex items-baseline gap-4 rounded-lg px-2 py-2.5 transition-colors hover:bg-black/[0.03]"
           >
-            <span class="font-mono text-xs text-dim">{{ new Date(p.published_at).toLocaleDateString('zh-CN') }}</span>
+            <span class="font-mono text-xs text-dim">{{ fmtDate(p.published_at) }}</span>
             <span class="truncate transition-colors group-hover:text-accent">{{ p.title }}</span>
           </RouterLink>
         </li>

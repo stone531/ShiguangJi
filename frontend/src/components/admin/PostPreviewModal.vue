@@ -30,7 +30,7 @@ function close() {
       <div class="mx-auto max-w-3xl px-4 pb-16 pt-10">
         <header class="text-center">
           <PostMetaLine
-            :date="new Date().toISOString()"
+            :date="new Date()"
             :content="content"
             :type="type"
             :category-name="categoryName"

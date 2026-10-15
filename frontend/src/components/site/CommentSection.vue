@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { createComment, listComments } from '@/api/public'
+import { fmtDate } from '@/utils/date'
 import type { CommentNode } from '@/types/api'
 
 const props = defineProps<{ slug: string }>()
@@ -87,10 +88,6 @@ async function submit() {
   } finally {
     submitting.value = false
   }
-}
-
-function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('zh-CN')
 }
 </script>
 

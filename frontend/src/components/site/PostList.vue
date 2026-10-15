@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import type { PostCard } from '@/types/api'
+import { fmtDate } from '@/utils/date'
 
 /** 纯文字文章列表（tao 式）：标题 + 灰色 mono 日期；图集/视频加灰色小标记 */
 defineProps<{ posts: PostCard[] }>()
 
 const typeTag: Record<number, string> = { 2: '图集', 3: '视频' }
-
-function fmtDate(d: string | null) {
-  return d ? new Date(d).toLocaleDateString('zh-CN') : ''
-}
 </script>
 
 <template>
