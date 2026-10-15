@@ -38,7 +38,7 @@ npx vue-tsc --noEmit -p tsconfig.app.json   # 仅类型检查（strict）
 ### 后端三层：router → handler → service → model
 
 - 统一响应 `{code, msg, data}`，code 0 为成功；一律经 `internal/handler/response.go` 的 `OK`/`Fail`。业务错误用 `internal/errs` 的 `BizError` 携带业务码（40001 参数 / 40004 不存在 / 20001、20002 token / 42901 限流），`Fail` 映射：42901→HTTP 429，其余业务码→400，未知错误→500/50000。
-- 认证：JWT 存 HttpOnly cookie `blog_token`（Path=/api）。`middleware/jwt.go` 做**滑动续期**——剩余寿命不足一半时重签写回，避免长文写作掉线；登录接口按 IP 限流 5 次/分钟。
+- 认证：JWT 存 HttpOnly cookie `blog_token`（Path=/api）。`middleware/jwt.go` 做**滑动续期**——剩余寿命不足一半时重签写回，避免长文写作掉线；登录接口按 IP 限流 5 次/分钟。签发/校验统一走 `internal/pkg/jwtutil`（middleware 与 auth service 共用）。
 - 路由分组（`internal/router/router.go`）：`/api/admin/login` 公开；`/api/admin/*` 受 JWT 保护，路径参数用 `:id`；`/api/posts`（列表支持 type/category/tag/keyword/featured 筛选，返回轻量 PostCard VO）、`/api/posts/:slug`（响应为 `{post, prev, next}`）、`/api/site`、`/api/categories`、`/api/tags`、`/api/archive` 前台公开，用 `:slug`——两组分开正是为了避开 Gin 路由冲突。handler 测试复用 `RegisterAuthRoutes`（不挂 RequestID/Recover）。
 - 上传：魔数白名单 + 内容嗅探校验、MD5 命名、同步生成缩略图（disintegration/imaging），5MB 上限，落盘 `uploads/`。开发模式由 Go 静态服务（目录列举已遮蔽为 404），生产由 Nginx 直出。
 - 配置：`internal/config` 进程单例，从 `.env`/环境变量加载；数据库优先用 `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME` 离散变量（内部组装 DSN），未设 `DB_USER` 时回落整串 `DSN`。
@@ -46,6 +46,7 @@ npx vue-tsc --noEmit -p tsconfig.app.json   # 仅类型检查（strict）
 ### 前端
 
 - 单 SPA 双路由区：`/`（前台 SiteLayout，暗色科技风）与 `/admin/*`（路由守卫查 Pinia admin store），全部懒加载独立 chunk。路径别名 `@` → `src/`。样式：Tailwind v4 + `src/styles/theme.css`（token/aurora/噪点/聚光/`.md-body` 排版）。
+- UI 组件双轨：后台 `/admin` 用 Naive UI + md-editor-v3 编辑器；前台展示站不用组件库，全手写 Tailwind 组件（`components/site/`）。新增界面先看目标路由区用的是哪一套。
 - Markdown 渲染管线（`components/site/MarkdownView.vue`）：markdown-it（`html:false`）→ DOMPurify → v-html → Shiki 异步高亮。改渲染逻辑时保持该顺序，勿绕过净化。
 - `src/api/http.ts` axios 单例：`code≠0` 统一 reject；20001/20002 或 HTTP 401 → 清空 admin store 并跳 `/admin/login`；默认头带 `X-Requested-With: XMLHttpRequest`（后端对除登录外的全部 `/api` 写操作强制校验该头，CSRF 纵深防御，前端绕过 `http.ts` 的自建请求需自行携带）。新接口一律走该文件的 `get/post/put/del` 封装。
 - 评论（先审后显，蜜罐字段 `website` 假成功）与点赞（IP+UA+LIKE_SALT 指纹）为公开写接口；敏感词 trie 现查现建（`service/sensitive.go`，词表存 `site_settings.sensitive_words`，仅 `/api/admin/site` 可读写该键，公开 `/api/site` 永不含它）。SEO meta 注入与 SPA fallback 在 `internal/router/spa.go`（启动缓存 `dist/index.html`）。
