@@ -14,7 +14,7 @@ import Lightbox from './Lightbox.vue'
 
 /**
  * Markdown 渲染管线（spec §2/§8 XSS 防御）：
- * markdown-it(html:false) → DOMPurify 净化 → v-html → Shiki 异步高亮（dark-plus）。
+ * markdown-it(html:false) → DOMPurify 净化 → v-html → Shiki 异步高亮（solarized-light）。
  * 标题注入锚点 id 并向父组件抛出 TOC；图片点击开 Lightbox。
  */
 
@@ -39,6 +39,16 @@ md.renderer.rules.heading_open = (tokens, idx, options, _env, self) => {
     token.attrSet('id', id)
   }
   return self.renderToken(tokens, idx, options)
+}
+
+// 有 alt 的图片包 figure + figcaption（alt 即图注，spec §9/§4b）
+const defaultImage = md.renderer.rules.image!
+md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  const alt = token.content || ''
+  const img = defaultImage(tokens, idx, options, env, self)
+  if (!alt) return img
+  return `<figure>${img}<figcaption>${md.utils.escapeHtml(alt)}</figcaption></figure>`
 }
 
 // DOMPurify 全局钩子：外链新窗口打开 + 图片懒加载（模块单次注册）
@@ -93,7 +103,7 @@ async function highlight(seq: number) {
       const m = /language-([\w+-]+)/.exec(block.className)
       const lang = m ? (langAlias[m[1]] ?? m[1]) : 'text'
       try {
-        const html = await codeToHtml(code, { lang, theme: 'dark-plus' })
+        const html = await codeToHtml(code, { lang, theme: 'solarized-light' })
         if (seq !== renderSeq) return
         const tpl = document.createElement('template')
         tpl.innerHTML = html.trim()
