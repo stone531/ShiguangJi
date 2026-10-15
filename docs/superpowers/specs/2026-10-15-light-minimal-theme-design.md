@@ -65,7 +65,7 @@
 
 - 头部居中：元信息行（见 §8）+ 大标题 + 标签行小字。
 - 正文容器去掉玻璃卡片边框背景，白底直接排版；视频 16:9 头部/图集封面保留，圆角收小 4px。
-- 目录：正文前「索引」块（h2 链接列表）；点击跳转目标 h2 黄底高亮 3s 渐隐（`:target` + keyframes）；删除悬浮 TOC 侧栏、移动端抽屉与悬浮按钮（`components/site/Toc.vue` 删除或仅保留链接生成逻辑）。
+- 目录：正文前「索引」块（由 MarkdownView 抛出的 toc 项过滤 h2 渲染链接列表）；点击跳转目标 h2 黄底高亮 3s 渐隐（`:target` + keyframes）；删除悬浮 TOC 侧栏、移动端抽屉、悬浮按钮与 `components/site/Toc.vue`。
 - 相关文章：纯文字列表（标题 + 日期）。
 - 点赞/赞赏区：浅色化（白底细边框卡片或无框居中），LikeButton/DonateModal 浅色化。
 - 上下篇：文字链接式「← 上一篇标题」/「下一篇标题 →」。
@@ -83,7 +83,7 @@
 - 字数：`content` 去除 markdown 标记/代码块/HTML 标签/空白后的字符数；时长 = 字数 ÷ 300 字/分钟，1 位小数。
 - 徽章：白字、红底（tao 原版正红）、`font-weight: bold`、`border-radius: 0.2em`、`padding: 0.2em`；加载后 2s `ease-in` 淡入，之后常驻；淡入遵守 `prefers-reduced-motion`。
 - 类型（文章/图集/视频）、分类链接、浏览量合并进本行；标签单独一行放标题下。
-- 前台详情页与后台发布预览**共用**此组件与字数/时长计算函数（放 `src/utils/reading.ts` 或组件内导出）。
+- 前台详情页与后台发布预览**共用**此组件与字数/时长计算函数（计算函数放 `src/utils/reading.ts`，组件 `PostMetaLine.vue` 内部调用）。
 
 ## 9. 文章排版规格（`.md-body` 修订）
 
